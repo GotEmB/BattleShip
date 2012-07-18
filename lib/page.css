@@ -7,5 +7,11 @@ body {
   height: 100%;
   -webkit-user-select: none;
   font: 12px/18px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
-  background-color: black;
+  background-color: #000;
+}
+canvas {
+  -webkit-transition: -webkit-transform 0.5s linear;
+}
+canvas.mine_small {
+  -webkit-transform: scale(0.3);
 }

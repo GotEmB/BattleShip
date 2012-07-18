@@ -1,6 +1,12 @@
 user-select()
 	-webkit-user-select arguments
 
+transition-transform()
+	-webkit-transition -webkit-transform arguments
+
+transform()
+	-webkit-transform arguments
+
 html, body
 	padding 0
 	margin 0
@@ -10,3 +16,9 @@ html, body
 	user-select none
 	font 12px/18px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif
 	background-color black
+
+canvas
+	transition-transform 0.5s linear
+
+canvas.mine_small
+	transform scale(0.3)
