@@ -1,8 +1,11 @@
 easeInOut = (x) -> Math.pow (Math.sin((x - 0.5) * Math.PI) + 1) * 0.5, 2
 
 $(document).ready ->
-	window.scrollTo 0, 1	
+	window.scrollTo 0, 1
 	$(document).bind "touchmove", (e) -> e.preventDefault()
+	$(document).bind "touchstart", (e) -> e.preventDefault()
+	$(document).bind "touchend", (e) -> e.preventDefault()
+	
 	
 	wdp = window.devicePixelRatio ? 1
 	viewport = document.querySelector "meta[name=viewport]"
@@ -13,6 +16,7 @@ $(document).ready ->
 	
 	paper.install window
 	paper.setup document.getElementById "canvas"
+	mainLayer = project.activeLayer
 	
 	lstyle =
 		strokeColor: "white"
@@ -36,32 +40,67 @@ $(document).ready ->
 	gridl.addChildren hlines
 	gridl_s = new Symbol gridl
 	
-	mine = gridl_s.place [160 * wdp, 160 * wdp]
+	mineBack = new Layer()
+	mainLayer.activate()
+	mineGrid = gridl_s.place()
+	mineFront = new Layer()
+	mainLayer.activate()
+	mine = new Group [mineBack, mineGrid, mineFront]
 	mine_s = new Symbol mine
 	mine_p = mine_s.place [160 * wdp, 160 * wdp]
 	
-	yours = gridl_s.place [160 * wdp, 260 * wdp]
+	yoursBack = new Layer()
+	mainLayer.activate()
+	yoursGrid = gridl_s.place()
+	yoursFront = new Layer()
+	mainLayer.activate()
+	yours = new Group [yoursBack, yoursGrid, yoursFront]
 	yours_s = new Symbol yours
 	yours_p = yours_s.place [160 * wdp, 260 * wdp]
 	yours_p.scale 0.3, [160 * wdp, 410 * wdp]
 	
 	view.draw()
 	
-	tool = new Tool()
-	tool.onMouseDown = (e) ->
-		view.onFrame = (e) ->
-			if e.time > 0.2
-				view.onFrame = null
-				mine_p.remove()
-				mine_p = mine_s.place [160 * wdp, 160 * wdp]
-				mine_p.scale 0.3, [160 * wdp, 10 * wdp]
-				yours_p.remove()
-				yours_p = yours_s.place [160 * wdp, 260 * wdp]
-				yours_p.scale 1, [160 * wdp, 410 * wdp]
-			else
-				mine_p.remove()
-				mine_p = yours_s.place [160 * wdp, 160 * wdp]
-				mine_p.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]			
-				yours_p.remove()
-				yours_p = yours_s.place [160 * wdp, 260 * wdp]
-				yours_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
+	activateYours = (e) ->
+		if e.time > 0.2
+			view.onFrame = null
+			mine_p.remove()
+			mine_p = mine_s.place [160 * wdp, 160 * wdp]
+			mine_p.scale 0.3, [160 * wdp, 10 * wdp]
+			yours_p.remove()
+			yours_p = yours_s.place [160 * wdp, 260 * wdp]
+			yours_p.scale 1, [160 * wdp, 410 * wdp]
+		else
+			mine_p.remove()
+			mine_p = mine_s.place [160 * wdp, 160 * wdp]
+			mine_p.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
+			yours_p.remove()
+			yours_p = yours_s.place [160 * wdp, 260 * wdp]
+			yours_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
+	
+	activateMine = (e) ->
+		if e.time > 0.2
+			view.onFrame = null
+			yours_p.remove()
+			yours_p = yours_s.place [160 * wdp, 260 * wdp]
+			yours_p.scale 0.3, [160 * wdp, 410 * wdp]
+			mine_p.remove()
+			mine_p = mine_s.place [160 * wdp, 160 * wdp]
+			mine_p.scale 1, [160 * wdp, 10 * wdp]
+		else
+			yours_p.remove()
+			yours_p = yours_s.place [160 * wdp, 260 * wdp]
+			yours_p.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
+			mine_p.remove()
+			mine_p = mine_s.place [160 * wdp, 160 * wdp]
+			mine_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
+	
+	tool1 = new Tool()
+	tool1.onMouseDown = (e) ->
+		view.onFrame = activateYours
+		tool2.activate()
+	
+	tool2 = new Tool()
+	tool2.onMouseDown = (e) ->
+		view.onFrame = activateMine
+		tool1.activate()
