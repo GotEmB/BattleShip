@@ -73,7 +73,7 @@ class BattleShip
 		player1: null
 		player2: null
 		@generateNewGameId = ->
-			id = md5(Date.now()).substr(0, 6).toUpperCase() while id is null and BattleShip.currentGames[id]?
+			id = md5(Date.now()).substr(0, 6).toUpperCase() until id? and BattleShip.currentGames[id] is null
 			id
 
 server = express.createServer()
