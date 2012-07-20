@@ -67,7 +67,7 @@ class BattleShip
 			result: "miss"
 	class @Game
 		constructor: ->
-			@id = @generateNewGameId()
+			@id = @constructor.generateNewGameId()
 			BattleShip.currentGames[@id] = @
 			BattleShip.currentGames.length++
 		player1: null
