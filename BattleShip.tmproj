@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>lib/page.js</string>
+	<string>web.coffee</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -54,28 +54,44 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>26</integer>
+				<integer>25</integer>
 				<key>line</key>
-				<integer>66</integer>
+				<integer>77</integer>
 			</dict>
+			<key>columnSelection</key>
+			<false/>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>33</integer>
+			<integer>49</integer>
+			<key>selectFrom</key>
+			<dict>
+				<key>column</key>
+				<integer>23</integer>
+				<key>line</key>
+				<integer>77</integer>
+			</dict>
+			<key>selectTo</key>
+			<dict>
+				<key>column</key>
+				<integer>28</integer>
+				<key>line</key>
+				<integer>77</integer>
+			</dict>
 		</dict>
 		<key>src/page.coffee</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>72</integer>
+				<integer>20</integer>
 				<key>line</key>
-				<integer>66</integer>
+				<integer>53</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>16</integer>
+			<integer>9</integer>
 		</dict>
 		<key>src/page.styl</key>
 		<dict>
@@ -96,14 +112,14 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>13</integer>
+				<integer>33</integer>
 				<key>line</key>
-				<integer>6</integer>
+				<integer>131</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>86</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
@@ -118,6 +134,6 @@
 	<key>showFileHierarchyDrawer</key>
 	<true/>
 	<key>windowFrame</key>
-	<string>{{597, 114}, {1154, 944}}</string>
+	<string>{{460, 103}, {1154, 944}}</string>
 </dict>
 </plist>
