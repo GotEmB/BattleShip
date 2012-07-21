@@ -1,23 +1,49 @@
 easeInOut = (x) -> Math.pow (Math.sin((x - 0.5) * Math.PI) + 1) * 0.5, 2
 
-$(document).ready ->
+bindMouseDown = (sel, fn) ->
+	$(sel).bind "mousedown", fn
+	$(sel).bind "touchstart", fn
+
+wdp = window.devicePixelRatio ? 1
+
+viewport = document.querySelector "meta[name=viewport]"
+viewport.setAttribute 'content', "user-scalable=no, width=#{320 * wdp}, height=#{416 * wdp}, initial-scale=#{1.0 / wdp}, maximum-scale=#{1.0 / wdp}"
+
+setupPage = ->
 	window.scrollTo 0, 1
+	
 	$(document).bind "touchmove", (e) -> e.preventDefault()
-	$(document).bind "touchstart", (e) -> e.preventDefault()
-	$(document).bind "touchend", (e) -> e.preventDefault()
+	$(document).bind "touchstart", (e) -> e.preventDefault() unless $(e.srcElement).hasClass "selectable"
+	$(document).bind "touchend", (e) -> e.preventDefault() unless $(e.srcElement).hasClass "selectable"
 	
-	
-	wdp = window.devicePixelRatio ? 1
-	viewport = document.querySelector "meta[name=viewport]"
-	viewport.setAttribute 'content', "user-scalable=no, width=#{320 * wdp}, height=#{416 * wdp}, initial-scale=#{1.0 / wdp}, maximum-scale=#{1.0 / wdp}"
 	canvas = document.getElementById "canvas"
 	canvas.setAttribute 'width', "#{320 * wdp}"
 	canvas.setAttribute 'height', "#{416 * wdp}"
 	
+	$("html, body").css "width", 320 * wdp
+	$("html, body").css "height", 416 * wdp
+	
+	$("#menuView").css "-webkit-transform", "scale(#{wdp})"
+	$("#menuView").css "display", "block"
+	
+	$("#gameId_Entry").focusout -> window.scrollTo 0, 1
+
+setupEvents = ->
+	bindMouseDown "#newGame_btn", (e) ->
+		$("#menuView").addClass "enableTransitions"
+		$("#mainMenu").addClass "moveLeft"
+		$("#newMenu").removeClass "moveRight"
+	
+	bindMouseDown "#joinGame_btn", (e) ->
+		$("#menuView").addClass "enableTransitions"
+		$("#mainMenu").addClass "moveLeft"
+		$("#joinMenu").removeClass "moveRight"
+
+setupCanvas = ->
 	paper.install window
 	paper.setup document.getElementById "canvas"
 	mainLayer = project.activeLayer
-	
+
 	lstyle =
 		strokeColor: "white"
 		strokeWidth: 2 * wdp
@@ -39,7 +65,7 @@ $(document).ready ->
 	gridl = new Group vlines
 	gridl.addChildren hlines
 	gridl_s = new Symbol gridl
-	
+
 	mineBack = new Layer()
 	mainLayer.activate()
 	mineGrid = gridl_s.place()
@@ -48,7 +74,7 @@ $(document).ready ->
 	mine = new Group [mineBack, mineGrid, mineFront]
 	mine_s = new Symbol mine
 	mine_p = mine_s.place [160 * wdp, 160 * wdp]
-	
+
 	yoursBack = new Layer()
 	mainLayer.activate()
 	yoursGrid = gridl_s.place()
@@ -58,9 +84,9 @@ $(document).ready ->
 	yours_s = new Symbol yours
 	yours_p = yours_s.place [160 * wdp, 260 * wdp]
 	yours_p.scale 0.3, [160 * wdp, 410 * wdp]
-	
+
 	view.draw()
-	
+
 	activateYours = (e) ->
 		if e.time > 0.2
 			view.onFrame = null
@@ -77,7 +103,7 @@ $(document).ready ->
 			yours_p.remove()
 			yours_p = yours_s.place [160 * wdp, 260 * wdp]
 			yours_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
-	
+
 	activateMine = (e) ->
 		if e.time > 0.2
 			view.onFrame = null
@@ -94,13 +120,17 @@ $(document).ready ->
 			mine_p.remove()
 			mine_p = mine_s.place [160 * wdp, 160 * wdp]
 			mine_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
-	
+
 	tool1 = new Tool()
 	tool1.onMouseDown = (e) ->
 		view.onFrame = activateYours
 		tool2.activate()
-	
+
 	tool2 = new Tool()
 	tool2.onMouseDown = (e) ->
 		view.onFrame = activateMine
 		tool1.activate()
+
+$(document).ready ->
+	setupPage()
+	setupEvents()

@@ -83,6 +83,7 @@ server.configure ->
 	server.use (req, res, next) ->
 		req.url = "/page.html" if req.url is "/"
 		console.log "Request: #{req.path}"
+		console.log "User Agent: #{req.headers['user-agent']}"
 		next()
 	server.use express.static "#{__dirname}/lib", maxAge: 31557600000, (err) -> console.log "Static: #{err}"
 
