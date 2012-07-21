@@ -129,9 +129,14 @@ io.on "connection", (socket) ->
 		targetPlayer.socket.emit "shotAt", shotAt: coordinates, result: result
 		callback result
 		
-	socket.on "disconnect", -> # ...
-		BattleShip.currentGames[socket.game.id] = null
-		socket.game = null
-		BattleShip.currentGames.length--
+	socket.on "disconnect", ->
+		if socket.game?
+			if socket.game.player1.socket is socket
+				socket.game.player2.socket.disconnect() if socket.game.player2?
+			else
+				socket.game.player1.socket.disconnect() if socket.game.player1?
+			BattleShip.currentGames[socket.game.id] = null
+			socket.game = null
+			BattleShip.currentGames.length--
 
 server.listen (port = process.env.PORT || 5000), -> console.log "Listening on port #{port}"
