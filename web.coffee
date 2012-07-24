@@ -2,6 +2,7 @@ express = require "express"
 socket_io = require "socket.io"
 fluent = require "./fluent"
 md5 = require "MD5"
+http = require "http"
 
 class BattleShip
 	@currentGames:
@@ -70,46 +71,61 @@ class BattleShip
 			@id = @constructor.generateNewGameId()
 			BattleShip.currentGames[@id] = @
 			BattleShip.currentGames.length++
+			console.log "New Game: #{@id}"
 		player1: null
 		player2: null
 		@generateNewGameId = ->
-			id = md5(Date.now()).substr(0, 6).toUpperCase() until id? and BattleShip.currentGames[id] is null
+			id = md5("#{Date.now()}").substr(0, 6).toUpperCase() until id? and !BattleShip.currentGames[id]?
 			id
 
-server = express.createServer()
-server.configure ->
+expressServer = express.createServer()
+expressServer.configure ->
 	
-	server.use express.bodyParser()
-	server.use (req, res, next) ->
+	expressServer.use express.bodyParser()
+	expressServer.use (req, res, next) ->
 		req.url = "/page.html" if req.url is "/"
 		console.log "Request: #{req.path}"
 		console.log "User Agent: #{req.headers['user-agent']}"
 		next()
-	server.use express.static "#{__dirname}/lib", maxAge: 31557600000, (err) -> console.log "Static: #{err}"
+	expressServer.use express.static "#{__dirname}/lib", maxAge: 31557600000, (err) -> console.log "Static: #{err}"
+	expressServer.use expressServer.router
 
-io = socket_io.listen(server).of "comm"
+server = http.createServer expressServer
+
+io = socket_io.listen server
 io.on "connection", (socket) ->
+	
+	socket.on "resetAll", (callback) ->
+		if socket.game?
+			game = socket.game
+			socket.game = null
+			BattleShip.currentGames[game.id] = null
+			BattleShip.currentGames.length--
+			if game.player1.socket is socket
+				game.player2.socket.emit "friendDisconnected" if game.player2?
+			else if game.player2.socket is socket
+				game.player1.socket.emit "friendDisconnected" if game.player1?
+		callback()
 	
 	socket.on "newGame", (callback) ->
 		if BattleShip.currentGames.length >= 1000
 			callback status: "Server full"
-			socket.disconnect()
 		else
 			socket.game = new BattleShip.Game()
-			socket.game.player1 = new Player socket
+			socket.game.player1 = new BattleShip.Player socket
 			callback status: "Game created", id: socket.game.id
 			
 	socket.on "joinGame", (id, callback) ->
-		if BattleShip.currentGames[id] is null
+		id = id.toUpperCase()
+		if !BattleShip.currentGames[id]?
 			callback status: "Invalid game"
-			socket.disconnect()
 		else if BattleShip.currentGames[id].player2?
 			callback status: "Game full"
-			socket.disconnect()
 		else
 			socket.game = BattleShip.currentGames[id]
-			socket.game.player2 = new Player socket
+			socket.game.player2 = new BattleShip.Player socket
 			callback status: "Game joined"
+			socket.game.player1.socket.emit "friendJoined"
 			
 	socket.on "setShips", (ships) ->
 		if socket.game.player1.socket is socket
@@ -117,8 +133,8 @@ io.on "connection", (socket) ->
 		else
 			socket.game.player2.ships = new BattleShip.Ships ships
 		if socket.game.player1.ships? and socket.game.player2.ships?
-			socket.game.player1.emit "Your turn"
-			socket.game.player2.emit "Their turn"
+			socket.game.player1.socket.emit "Your turn"
+			socket.game.player2.socket.emit "Their turn"
 	
 	socket.on "kaboom", (coordinates, callback) ->
 		targetPlayer = null
@@ -132,12 +148,13 @@ io.on "connection", (socket) ->
 		
 	socket.on "disconnect", ->
 		if socket.game?
-			if socket.game.player1.socket is socket
-				socket.game.player2.socket.disconnect() if socket.game.player2?
-			else
-				socket.game.player1.socket.disconnect() if socket.game.player1?
-			BattleShip.currentGames[socket.game.id] = null
+			game = socket.game
 			socket.game = null
+			BattleShip.currentGames[game.id] = null
 			BattleShip.currentGames.length--
+			if game.player1.socket is socket
+				game.player2.socket.emit "friendDisconnected" if game.player2?
+			else if game.player2.socket is socket
+				game.player1.socket.emit "friendDisconnected" if game.player1?
 
-server.listen (port = process.env.PORT || 5000), -> console.log "Listening on port #{port}"
+server.listen (port = process.env.PORT ? 5000), -> console.log "Listening on port #{port}"

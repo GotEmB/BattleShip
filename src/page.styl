@@ -32,6 +32,18 @@ html, body
 
 #canvas
 	display none
+	position absolute
+
+#menuViewContainer
+	position absolute
+	width 100%
+	height 100%
+	
+	&.enableTransitions
+		transition-transform 0.35s ease-in-out 0.2s
+	
+	&.moveDown
+		transform translateY(100%)
 
 #menuView
 	display none
@@ -98,6 +110,16 @@ div.gameId_label
 	color black
 	box-shadow inset 0 0 4px black
 
-#gameId_desc
+div.gameId_desc
 	margin-top 100px
 	padding 20px
+
+#pleaseWait
+	display none
+	position absolute
+	width 100%
+	height 100%
+	
+	& div.container
+		position absolute
+		box-shadow none

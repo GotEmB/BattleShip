@@ -4,10 +4,51 @@ bindMouseDown = (sel, fn) ->
 	$(sel).bind "mousedown", fn
 	$(sel).bind "touchstart", fn
 
+pleaseWait =
+	counter: 0
+	show: ->
+		pleaseWait.counter++
+		$("#pleaseWait").css "display", "block" if pleaseWait.counter > 0
+	hide: ->
+		pleaseWait.counter--
+		$("#pleaseWait").css "display", "none" if pleaseWait.counter <= 0
+
 wdp = window.devicePixelRatio ? 1
 
 viewport = document.querySelector "meta[name=viewport]"
 viewport.setAttribute 'content', "user-scalable=no, width=#{320 * wdp}, height=#{416 * wdp}, initial-scale=#{1.0 / wdp}, maximum-scale=#{1.0 / wdp}"
+
+socket = io.connect()
+
+socket.on "connect", -> pleaseWait.hide()
+socket.on "friendJoined", -> setupGame()
+socket.on "friendDisconnected", -> gotoGameOverMenu "Your friend has left the game."
+
+window.onpopstate = (e) ->
+	if e.state is null
+		pleaseWait.show()
+		socket.emit "resetAll", ->
+			pleaseWait.hide()
+		$("#menuView").addClass "enableTransitions"
+		$("#mainMenu").removeClass "moveLeft"
+		$("#mainMenu").removeClass "moveRight"
+		$("#newMenu").addClass "moveRight"
+		$("#joinMenu").addClass "moveRight"
+		$("#gameOverMenu").addClass "moveLeft"
+	else if e.state.state is "newMenu"
+		$("#menuView").removeClass "enableTransitions"
+		$("#mainMenu").addClass "moveLeft"
+		$("#newMenu").removeClass "moveRight"
+		$("#joinMenu").addClass "moveRight"
+	else if e.state.state is "joinMenu"
+		$("#menuView").removeClass "enableTransitions"
+		$("#mainMenu").addClass "moveLeft"
+		$("#newMenu").addClass "moveRight"
+		$("#joinMenu").removeClass "moveRight"
+	else if e.state.state is "setupShips"
+		$("#menuView").removeClass "enableTransitions"
+		$("#menuView").addClass "moveDown"
+		setupCanvas state: e.state.board
 
 setupPage = ->
 	window.scrollTo 0, 1
@@ -16,34 +57,90 @@ setupPage = ->
 	$(document).bind "touchstart", (e) -> e.preventDefault() unless $(e.srcElement).hasClass "selectable"
 	$(document).bind "touchend", (e) -> e.preventDefault() unless $(e.srcElement).hasClass "selectable"
 	
+	pleaseWait.show()
+
+	
 	canvas = document.getElementById "canvas"
 	canvas.setAttribute 'width', "#{320 * wdp}"
 	canvas.setAttribute 'height', "#{416 * wdp}"
+	paper.install window
+	paper.setup document.getElementById "canvas"
 	
 	$("html, body").css "width", 320 * wdp
 	$("html, body").css "height", 416 * wdp
-	
+
 	$("#menuView").css "-webkit-transform", "scale(#{wdp})"
 	$("#menuView").css "display", "block"
+	
+	$("#pleaseWait div.container div.spinner").css "width", "#{60 * wdp}px"
+	$("#pleaseWait div.container div.spinner").css "height", "#{60 * wdp}px"
+	$("#pleaseWait div.container").css "padding", "#{1.5 * wdp}em #{1.5 * wdp}em #{1.25 * wdp}em"
+	$("#pleaseWait div.container").css "margin", "#{153 * wdp}px #{112 * wdp}px"
 	
 	$("#gameId_Entry").focusout -> window.scrollTo 0, 1
 
 setupEvents = ->
 	bindMouseDown "#newGame_btn", (e) ->
-		$("#menuView").addClass "enableTransitions"
-		$("#mainMenu").addClass "moveLeft"
-		$("#newMenu").removeClass "moveRight"
+		pleaseWait.show()
+		socket.emit "newGame", (data) ->
+			if data? and data.status is "Game created"
+				$("#gameId").text data.id
+				$("#menuView").addClass "enableTransitions"
+				$("#mainMenu").addClass "moveLeft"
+				$("#newMenu").removeClass "moveRight"
+				history.pushState state: "newMenu", "", ""
+			else
+				alert "Could not create game."
+				socket = io.connect()
+			pleaseWait.hide()
 	
 	bindMouseDown "#joinGame_btn", (e) ->
 		$("#menuView").addClass "enableTransitions"
 		$("#mainMenu").addClass "moveLeft"
 		$("#joinMenu").removeClass "moveRight"
+		history.pushState state: "joinMenu", "", ""
+	
+	bindMouseDown "#enterGameId_btn", (e) ->
+		pleaseWait.show()
+		socket.emit "joinGame", $("#gameId_entry").text(), (data) ->
+			if data? and data.status is "Game joined"
+				setupGame()
+			else
+				alert if data? and data.status? then data.status else "Could not join game."
+			pleaseWait.hide()
+	
+	bindMouseDown "#gameOverOkay_btn", (e) ->
+		history.back()
 
-setupCanvas = ->
-	paper.install window
-	paper.setup document.getElementById "canvas"
+setupGame = ->
+	$("#menuViewContainer").addClass "enableTransitions"
+	$("#menuViewContainer").addClass "moveDown"
+	setupCanvas()
+	history.replaceState state: "setupShips", "", ""
+
+gotoGameOverMenu = (msg) ->
+	$("#gameOver_msg").text msg ? "Something's happened."
+	setTimeout (-> setupCanvas reset: true), 350
+	$("#menuView").removeClass "enableTransitions"
+	$("#mainMenu").removeClass "moveLeft"
+	$("#mainMenu").addClass "moveRight"
+	$("#newMenu").addClass "moveRight"
+	$("#joinMenu").addClass "moveRight"
+	$("#gameOverMenu").removeClass "moveLeft"
+	$("#menuViewContainer").addClass "enableTransitions"
+	$("#menuViewContainer").removeClass "moveDown"
+	history.replaceState null, "", ""
+
+setupCanvas = (data) ->
 	mainLayer = project.activeLayer
-
+	
+	if data? and data.reset
+		mainLayer.children[0].remove() while mainLayer.children.length > 0
+		$("#canvas").css "display", "none"
+		return
+	
+	$("#canvas").css "display", "block"
+	
 	lstyle =
 		strokeColor: "white"
 		strokeWidth: 2 * wdp
