@@ -153,6 +153,24 @@ setupCanvas = (data) ->
 	$("#canvas").css "display", "block"
 	view.draw()
 	
+	class Game
+		class @Board
+			symbol: null
+			placed: null
+			back: null
+			front: null
+		class @Ships
+			aircraftCarrier: null
+			battleShip: null
+			submarine: null
+			cruiser: null
+			destroyer: null
+		class @Player
+			board: new Game.Board()
+			ships: new Game.Ships()
+		@mine: new Game.Player()
+		@yours: new Game.Player()
+	
 	# Basic Grid Layer
 	do =>
 		lstyle =
@@ -179,25 +197,23 @@ setupCanvas = (data) ->
 	
 	# Mine — Group
 	do =>
-		mineBack = new Layer()
+		Game.mine.board.back = new Layer()
 		mainLayer.activate()
 		mineGrid = gridl_s.place()
-		mineFront = new Layer()
+		Game.mine.board.front = new Layer()
 		mainLayer.activate()
-		mine = new Group [mineBack, mineGrid, mineFront]
-		@mine_s = new Symbol mine
-		# ...
-		mine_p = @mine_s.place [160 * wdp, 160 * wdp]
+		mine = new Group [Game.mine.board.back, mineGrid, Game.mine.board.front]
+		Game.mine.board.symbol = new Symbol mine
 	
 	# Yours — Group
 	do =>
-		yoursBack = new Layer()
+		Game.yours.board.back = new Layer()
 		mainLayer.activate()
 		yoursGrid = gridl_s.place()
-		yoursFront = new Layer()
+		Game.yours.board.front = new Layer()
 		mainLayer.activate()
-		yours = new Group [yoursBack, yoursGrid, yoursFront]
-		@yours_s = new Symbol yours
+		yours = new Group [Game.yours.board.back, yoursGrid, Game.yours.board.front]
+		Game.yours.board.symbol = new Symbol yours
 		# yours_p = yours_s.place [160 * wdp, 260 * wdp]
 		# yours_p.scale 0.3, [160 * wdp, 410 * wdp]
 	
@@ -229,7 +245,6 @@ setupCanvas = (data) ->
 			box.fillColor = "white"
 			arc.strokeColor = "black"
 			arrow.fillColor = "black"
-		rotate_p = @rotate_s.place [295 * wdp, 335 * wdp]
 	
 	# Next Button
 	do =>
@@ -239,7 +254,58 @@ setupCanvas = (data) ->
 			strokeWidth: 2 * wdp
 			strokeColor: "white"
 			strokeCap: "square"
-		
+		arrow = new Path [[-3 * wdp, -8 * wdp], [7 * wdp, 0], [-3 * wdp, 8 * wdp]]
+		arrow.style = fillColor: "black"
+		arrow.closePath()
+		next = new Group [box, arrow]
+		@next_s = new Symbol next
+		@next_s.mouseDown = ->
+			box.fillColor = "black"
+			arc.strokeColor = "white"
+			arrow.fillColor = "white"
+		@next_s.mouseUp = ->
+			box.fillColor = "white"
+			arc.strokeColor = "black"
+			arrow.fillColor = "black"
+	
+	# Generic Ship
+	makeShip = (n) ->
+		line = new Path [[0, 0], [150 * wdp, 0]]
+		line.style =
+			strokeColor: "white"
+			strokeWidth: 10 * wdp
+			strokeCap: "round"
+		select = new Path [[0, 0], [150 * wdp, 0]]
+		select.style =
+			strokeColor: "cyan"
+			strokeWidth: 10 * wdp
+			strokeCap: "round"
+		select.strokeColor.alpha = 0
+		ship = new Group [line, select]
+		ship.select = ->
+			select.visible = true
+		ship.deselect = ->
+			select.visible = false
+		ship
+	
+	# All Ships
+	do =>
+		for player in ["mine", "yours"]
+			for ship of Game.Ships.prototype
+				Game[player].ships[ship] = makeShip switch ship
+					when "aircraftCarrier"then 5
+					when "battleShip" then 4
+					when "submarine" then 3
+					when "cruiser" then 3
+					when "destroyer" then 2
+				Game[player].board.front.addChild Game[player].ships[ship]
+				Game[player].ships[ship].visible = false
+	
+	# Setup Ships
+	do =>
+		Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
+		@rotate_p = @rotate_s.place [260 * wdp, 335 * wdp]
+		@next_p = @next_s.place [295 * wdp, 335 * wdp]
 	
 	activateYours = (e) =>
 		if e.time > 0.2

@@ -13,23 +13,23 @@ class BattleShip
 			@y = coordinates.y
 	class @Ship
 		constructor: (ship) ->
-			@coordinates = new Coordinates ship.coordinates
+			@coordinates = new BattleShip.Coordinates ship.coordinates
 			@alignment = ship.alignment
 		sunk: false
 	class @Ships
 		constructor: (ships) ->
-			@aircraftCarrier = new Ship ships.aircraftCarrier
-			@battleShip = new Ship ships.battleShip
-			@submarine = new Ship ships.submarine
-			@cruiser = new Ship ships.cruiser
-			@destroyer = new Ship ships.destroyer
+			@aircraftCarrier = new BattleShip.Ship ships.aircraftCarrier
+			@battleShip = new BattleShip.Ship ships.battleShip
+			@submarine = new BattleShip.Ship ships.submarine
+			@cruiser = new BattleShip.Ship ships.cruiser
+			@destroyer = new BattleShip.Ship ships.destroyer
 	class @Player
 		constructor: (socket) ->
 			@socket = socket
 		ships: null
 		shotAt: []
 		kaboom: (coordinates) ->
-			@shotAt.push new Coordinates coordinates
+			@shotAt.push new BattleShip.Coordinates coordinates
 			for ship, i in [@ships.aircraftCarrier, @ships.battleShip, @ships.submarine, @ships.cruiser, @ships.destroyer]
 				continue if ship.sunk
 				len = if i is 0 then 5 else if i is 1 then 4 else if i is 4 then 2 else 3
