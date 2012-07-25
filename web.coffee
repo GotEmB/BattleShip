@@ -103,8 +103,10 @@ io.on "connection", (socket) ->
 			BattleShip.currentGames.length--
 			if game.player1.socket is socket
 				game.player2.socket.emit "friendDisconnected" if game.player2?
+				game.player2.socket.game = null
 			else if game.player2.socket is socket
 				game.player1.socket.emit "friendDisconnected" if game.player1?
+				game.player1.socket.game = null
 		callback()
 	
 	socket.on "newGame", (callback) ->
@@ -154,7 +156,9 @@ io.on "connection", (socket) ->
 			BattleShip.currentGames.length--
 			if game.player1.socket is socket
 				game.player2.socket.emit "friendDisconnected" if game.player2?
+				game.player2.socket.game = null
 			else if game.player2.socket is socket
 				game.player1.socket.emit "friendDisconnected" if game.player1?
+				game.player1.socket.game = null
 
 server.listen (port = process.env.PORT ? 5000), -> console.log "Listening on port #{port}"
