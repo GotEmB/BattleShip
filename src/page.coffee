@@ -231,6 +231,16 @@ setupCanvas = (data) ->
 			arrow.fillColor = "black"
 		rotate_p = @rotate_s.place [295 * wdp, 335 * wdp]
 	
+	# Next Button
+	do =>
+		box = new Path.Rectangle [-14 * wdp, -14 * wdp], [28 * wdp, 28 * wdp]
+		box.style =
+			fillColor: "white"
+			strokeWidth: 2 * wdp
+			strokeColor: "white"
+			strokeCap: "square"
+		
+	
 	activateYours = (e) =>
 		if e.time > 0.2
 			view.onFrame = null
