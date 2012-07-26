@@ -270,22 +270,35 @@ setupCanvas = (data) ->
 	
 	# Generic Ship
 	makeShip = (n) ->
-		line = new Path [[0, 0], [150 * wdp, 0]]
+		line = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
 		line.style =
 			strokeColor: "white"
 			strokeWidth: 10 * wdp
 			strokeCap: "round"
-		select = new Path [[0, 0], [150 * wdp, 0]]
+		select = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
 		select.style =
 			strokeColor: "cyan"
 			strokeWidth: 10 * wdp
 			strokeCap: "round"
-		select.strokeColor.alpha = 0
+		select.strokeColor.alpha = 0.25
+		select.visible = false
 		ship = new Group [line, select]
 		ship.select = ->
 			select.visible = true
 		ship.deselect = ->
 			select.visible = false
+		ship.boundary =
+			horizontal: new Rectangle
+				x: -(150 - 15 * n) * wdp
+				y: -135 * wdp
+				width: 2 * (150 - 15 * n) * wdp
+				height: 2 * 135 * wdp
+			vertical: new Rectangle
+				x: -135 * wdp
+				y: -(150 - 15 * n) * wdp
+				width: 2 * 135 * wdp
+				height: 2 * (150 - 15 * n) * wdp
+		ship.orientation = "horizontal"
 		ship
 	
 	# All Ships
@@ -300,12 +313,45 @@ setupCanvas = (data) ->
 					when "destroyer" then 2
 				Game[player].board.front.addChild Game[player].ships[ship]
 				Game[player].ships[ship].visible = false
+				Game[player].ships[ship].select()
 	
 	# Setup Ships
 	do =>
 		Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 		@rotate_p = @rotate_s.place [260 * wdp, 335 * wdp]
 		@next_p = @next_s.place [295 * wdp, 335 * wdp]
+		selectedShip = Game.mine.ships.aircraftCarrier
+		selectedShip.visible = true
+		selectedShip.position = [-75 * wdp, -135 * wdp]
+		class shipMover
+			@moveto: (endPos, force) =>
+				startPos = @currentPos
+				@currentPos = endPos
+				delta = endPos.subtract startPos
+				view.onFrame = (e) =>
+					if e.time > 0.2
+						view.onFrame = null
+						selectedShip.position = endPos
+					else
+						selectedShip.position = startPos.add delta.multiply easeInOut e.time / 0.2
+		tool = new Tool()
+		tool.maxDistance = 30 * wdp
+		prevPos = null
+		shipMover.currentPos = selectedShip.position
+		moveBy = (delta) ->
+			return unless shipMover.currentPos.add(delta).isInside selectedShip.boundary[selectedShip.orientation]
+			shipMover.moveto shipMover.currentPos.add delta
+			prevPos = prevPos.add delta
+		tool.onMouseDown = (e) ->
+			prevPos = e.downPoint
+		tool.onMouseDrag = (e) ->
+			delta = e.point.subtract prevPos
+			moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
+			moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
+			moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
+			moveBy [0, -30 * wdp] if delta.y <= -30 * wdp
+			
+		tool.activate()
 	
 	activateYours = (e) =>
 		if e.time > 0.2

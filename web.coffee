@@ -14,7 +14,7 @@ class BattleShip
 	class @Ship
 		constructor: (ship) ->
 			@coordinates = new BattleShip.Coordinates ship.coordinates
-			@alignment = ship.alignment
+			@orientation = ship.orientation
 		sunk: false
 	class @Ships
 		constructor: (ships) ->
@@ -34,7 +34,7 @@ class BattleShip
 				continue if ship.sunk
 				len = if i is 0 then 5 else if i is 1 then 4 else if i is 4 then 2 else 3
 				op = 
-					if alignment is "horizontal"
+					if orientation is "horizontal"
 						for j in [0...i]
 							if coordinates.x is ship.coordinates.x + j and coordinates.y is ship.coordinates.y
 								"kaboom"
@@ -64,7 +64,7 @@ class BattleShip
 									when 3 then "cruiser"
 									when 4 then "destroyer"
 							coordinates: ship.coordinates
-							alignment: ship.alignment
+							orientation: ship.orientation
 			result: "miss"
 	class @Game
 		constructor: ->
@@ -102,11 +102,13 @@ io.on "connection", (socket) ->
 			BattleShip.currentGames[game.id] = null
 			BattleShip.currentGames.length--
 			if game.player1.socket is socket
-				game.player2.socket.emit "friendDisconnected" if game.player2?
-				game.player2.socket.game = null
+				if game.player2?
+					game.player2.socket.emit "friendDisconnected"
+					game.player2.socket.game = null
 			else if game.player2.socket is socket
-				game.player1.socket.emit "friendDisconnected" if game.player1?
-				game.player1.socket.game = null
+				if game.player1?
+					game.player1.socket.emit "friendDisconnected"
+					game.player1.socket.game = null
 		callback()
 	
 	socket.on "newGame", (callback) ->
@@ -155,10 +157,12 @@ io.on "connection", (socket) ->
 			BattleShip.currentGames[game.id] = null
 			BattleShip.currentGames.length--
 			if game.player1.socket is socket
-				game.player2.socket.emit "friendDisconnected" if game.player2?
-				game.player2.socket.game = null
+				if game.player2?
+					game.player2.socket.emit "friendDisconnected"
+					game.player2.socket.game = null
 			else if game.player2.socket is socket
-				game.player1.socket.emit "friendDisconnected" if game.player1?
-				game.player1.socket.game = null
+				if game.player1?
+					game.player1.socket.emit "friendDisconnected"
+					game.player1.socket.game = null
 
 server.listen (port = process.env.PORT ? 5000), -> console.log "Listening on port #{port}"
