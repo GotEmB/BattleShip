@@ -1,4 +1,5 @@
 easeInOut = (x) -> Math.pow (Math.sin((x - 0.5) * Math.PI) + 1) * 0.5, 2
+roundTo1 = (x) -> Math.round(x * 10) / 10
 
 async = (a, b) ->
 	if b?
@@ -146,6 +147,7 @@ gotoGameOverMenu = (msg) ->
 	history.replaceState null, "", ""
 
 setupCanvas = (data) ->
+	canvasThis = this
 	mainLayer = project.activeLayer
 	mainLayer.children[0].remove() while mainLayer.children.length > 0
 	return $("#canvas").css "display", "none" if data.reset? and data.reset
@@ -254,18 +256,16 @@ setupCanvas = (data) ->
 			strokeWidth: 2 * wdp
 			strokeColor: "white"
 			strokeCap: "square"
-		arrow = new Path [[-3 * wdp, -8 * wdp], [7 * wdp, 0], [-3 * wdp, 8 * wdp]]
+		arrow = new Path [[-4 * wdp, -8 * wdp], [6 * wdp, 0], [-4 * wdp, 8 * wdp]]
 		arrow.style = fillColor: "black"
 		arrow.closePath()
 		next = new Group [box, arrow]
 		@next_s = new Symbol next
 		@next_s.mouseDown = ->
 			box.fillColor = "black"
-			arc.strokeColor = "white"
 			arrow.fillColor = "white"
 		@next_s.mouseUp = ->
 			box.fillColor = "white"
-			arc.strokeColor = "black"
 			arrow.fillColor = "black"
 	
 	# Generic Ship
@@ -299,6 +299,12 @@ setupCanvas = (data) ->
 				width: 2 * 135 * wdp
 				height: 2 * (150 - 15 * n) * wdp
 		ship.orientation = "horizontal"
+		ship.size = n
+		ship.gridBounds = -> new Rectangle
+			x: roundTo1 ship.bounds.x - 15 * wdp
+			y: roundTo1 ship.bounds.y - 15 * wdp
+			width: roundTo1 ship.bounds.width + 30 * wdp
+			height: roundTo1 ship.bounds.height + 30 * wdp
 		ship
 	
 	# All Ships
@@ -315,42 +321,154 @@ setupCanvas = (data) ->
 				Game[player].ships[ship].visible = false
 				Game[player].ships[ship].select()
 	
+	# Red Backs
+	do =>
+		redBack = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		redBack.style = fillColor: "red"
+		redBack.fillColor.alpha = 0.5
+		@redBack_s = new Symbol redBack
+	
 	# Setup Ships
 	do =>
 		Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
-		@rotate_p = @rotate_s.place [260 * wdp, 335 * wdp]
-		@next_p = @next_s.place [295 * wdp, 335 * wdp]
+		@rotate_p = @rotate_s.place [261 * wdp, 335 * wdp]
+		@next_p = @next_s.place [296 * wdp, 335 * wdp]
 		selectedShip = Game.mine.ships.aircraftCarrier
 		selectedShip.visible = true
-		selectedShip.position = [-75 * wdp, -135 * wdp]
+		selectedShip.position = selectedShip.boundary[selectedShip.orientation].topLeft
+		prevPos = null
 		class shipMover
-			@moveto: (endPos, force) =>
+			@moveto: (endPos) =>
 				startPos = @currentPos
 				@currentPos = endPos
 				delta = endPos.subtract startPos
-				view.onFrame = (e) =>
+				view.onFrame = (e) ->
 					if e.time > 0.2
 						view.onFrame = null
 						selectedShip.position = endPos
 					else
 						selectedShip.position = startPos.add delta.multiply easeInOut e.time / 0.2
+			@moveBy: (delta) =>
+				return unless @currentPos.add(delta).isInside selectedShip.boundary[selectedShip.orientation]
+				@moveto @currentPos.add delta
+				prevPos = prevPos.add delta
+			@rotate: =>
+				return if view.onFrame?
+				validator.removeInvalidRedBacks()
+				startPos = new Point @currentPos
+				endPos =  new Point @currentPos
+				if selectedShip.size % 2 is 0
+					endPos = endPos.add if selectedShip.orientation is "horizontal" then [15 * wdp, 15 * wdp] else [-15 * wdp, -15 * wdp]
+				newBoundary = if selectedShip.orientation is "horizontal" then selectedShip.boundary.vertical else selectedShip.boundary.horizontal
+				endPos.x = newBoundary.left if endPos.x < newBoundary.left
+				endPos.x = newBoundary.right if endPos.x > newBoundary.right
+				endPos.y = newBoundary.top if endPos.y < newBoundary.top
+				endPos.y = newBoundary.bottom if endPos.y > newBoundary.bottom
+				@currentPos = endPos
+				delta = endPos.subtract startPos
+				transformMatrix = new Matrix
+				selectedShip.orientation = if selectedShip.orientation is "horizontal" then "vertical" else "horizontal"
+				view.onFrame = (e) ->
+					selectedShip.rotate -transformMatrix.rotation
+					transformMatrix = new Matrix
+					if e.time > 0.2
+						transformMatrix.rotate 90
+						selectedShip.rotate transformMatrix.rotation
+						selectedShip.position = endPos
+						validator.addInvalidRedBacks()
+					else
+						transformMatrix.rotate 90 * easeInOut e.time / 0.2
+						selectedShip.rotate transformMatrix.rotation
+						selectedShip.position = startPos.add delta.multiply easeInOut e.time / 0.2
+						startPos.add delta.multiply easeInOut e.time / 0.2
+		class validator
+			@shipsAt: (coordinates, ships) ->
+				ret = []
+				testPos = coordinates.multiply(30).subtract([135, 135]).multiply wdp
+				for ship in ships ? (_.filter (for str, ship of Game.mine.ships then ship), (ship) -> ship.visible)
+					ret.push ship if testPos.isInside ship.gridBounds()
+				ret
+			@shipsOverlapping: (ship) ->
+				ret = []
+				for ship1 in (_.filter (for str, ship1 of Game.mine.ships then ship1), (ship1) -> ship1.visible)
+					continue if ship is ship1
+					ret.push ship1 if ship.gridBounds().intersects ship1.gridBounds()
+				ret
+			@shipsTouching: (ship) ->
+				ret = []
+				for ship1 in (_.filter (for str, ship1 of Game.mine.ships then ship1), (ship1) -> ship1.visible)
+					continue if ship is ship1
+					intsec = ship.gridBounds().intersect ship1.gridBounds()
+					ret.push ship1 if (intsec.width is 0 and intsec.height > 0) or (intsec.height is 0 and intsec.width > 0)
+				ret
+			@invalidCoordinates: =>
+				allShips = _.filter (for str, ship of Game.mine.ships then ship), (ship) -> ship.visible
+				overlappingShips = _.union _.map(allShips, @shipsOverlapping)...
+				touchingShips = _.union _.map(allShips, @shipsTouching)...
+				invalidShips = _.union overlappingShips, touchingShips
+				allCoordinates = _.flatten(for i in [0...10] then for j in [0...10] then new Point [i, j])
+				_.filter allCoordinates, (coordinates) => @shipsAt(coordinates, invalidShips).length > 0
+			@removeInvalidRedBacks: ->
+				redBack.remove() for redBack in _.clone Game.mine.board.back.children
+			@addInvalidRedBacks: =>
+				Game.mine.board.back.activate()
+				canvasThis.redBack_s.place coordinates.multiply(30).subtract([135, 135]).multiply wdp for coordinates in @invalidCoordinates()
+				redBack.opacity = 0 for redBack in Game.mine.board.back.children
+				view.onFrame = (e) ->
+					if e.time > 0.2
+						redBack.opacity = 1 for redBack in Game.mine.board.back.children
+						view.onFrame = null
+					else
+						redBack.opacity = easeInOut e.time / 0.2 for redBack in Game.mine.board.back.children
 		tool = new Tool()
 		tool.maxDistance = 30 * wdp
-		prevPos = null
 		shipMover.currentPos = selectedShip.position
-		moveBy = (delta) ->
-			return unless shipMover.currentPos.add(delta).isInside selectedShip.boundary[selectedShip.orientation]
-			shipMover.moveto shipMover.currentPos.add delta
-			prevPos = prevPos.add delta
-		tool.onMouseDown = (e) ->
-			prevPos = e.downPoint
+		tool.onMouseDown = (e) =>
+			prevPos = null
+			if e.point.isInside @rotate_p.bounds
+				shipMover.rotate()
+				@rotate_s.mouseDown()
+			else if e.point.isInside @next_p.bounds
+				if !Game.mine.ships.destroyer.visible
+					selectedShip.deselect()
+					validator.removeInvalidRedBacks()
+					if !Game.mine.ships.battleShip.visible
+						selectedShip = Game.mine.ships.battleShip
+					else if !Game.mine.ships.submarine.visible
+						selectedShip = Game.mine.ships.submarine
+					else if !Game.mine.ships.cruiser.visible
+						selectedShip = Game.mine.ships.cruiser
+					else if !Game.mine.ships.destroyer.visible
+						selectedShip = Game.mine.ships.destroyer
+					selectedShip.visible = true
+					selectedShip.position = selectedShip.boundary[selectedShip.orientation].topLeft
+					shipMover.currentPos = selectedShip.position
+					validator.addInvalidRedBacks()
+				else
+					# Done setting ships
+				@next_s.mouseDown()
+			else
+				for str, ship of Game.mine.ships
+					continue if selectedShip is ship
+					if ship.visible and e.point.subtract(Game.mine.board.placed.position).isInside ship.gridBounds()
+						selectedShip.deselect()
+						selectedShip = ship
+						selectedShip.select()
+						shipMover.currentPos = selectedShip.position
+						return
+				validator.removeInvalidRedBacks()
+				prevPos = e.downPoint
 		tool.onMouseDrag = (e) ->
+			return if prevPos is null
 			delta = e.point.subtract prevPos
-			moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
-			moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
-			moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
-			moveBy [0, -30 * wdp] if delta.y <= -30 * wdp
-			
+			shipMover.moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
+			shipMover.moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
+			shipMover.moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
+			shipMover.moveBy [0, -30 * wdp] if delta.y <= -30 * wdp
+		tool.onMouseUp = (e) =>
+			@rotate_s.mouseUp()
+			@next_s.mouseUp()
+			validator.addInvalidRedBacks() if prevPos?
 		tool.activate()
 	
 	activateYours = (e) =>
