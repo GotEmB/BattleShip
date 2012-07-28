@@ -137,8 +137,8 @@ io.on "connection", (socket) ->
 		else
 			socket.game.player2.ships = new BattleShip.Ships ships
 		if socket.game.player1.ships? and socket.game.player2.ships?
-			socket.game.player1.socket.emit "Your turn"
-			socket.game.player2.socket.emit "Their turn"
+			socket.game.player1.socket.emit "yourTurn"
+			socket.game.player2.socket.emit "theirTurn"
 	
 	socket.on "kaboom", (coordinates, callback) ->
 		targetPlayer = null

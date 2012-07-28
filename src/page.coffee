@@ -42,6 +42,7 @@ window.onpopstate = (e) ->
 		$("#newMenu").addClass "moveRight"
 		$("#joinMenu").addClass "moveRight"
 		$("#gameOverMenu").addClass "moveLeft"
+		$("#friendPlacingMenu").addClass "moveRight"
 		$("#menuViewContainer").addClass "enableTransitions"
 		$("#menuViewContainer").removeClass "moveDown"
 	else if e.state.state is "newMenu"
@@ -54,10 +55,6 @@ window.onpopstate = (e) ->
 		$("#mainMenu").addClass "moveLeft"
 		$("#newMenu").addClass "moveRight"
 		$("#joinMenu").removeClass "moveRight"
-	else if e.state.state is "setupShips"
-		$("#menuView").removeClass "enableTransitions"
-		$("#menuView").addClass "moveDown"
-		setupCanvas setupShips: e.state.board
 
 setupPage = ->
 	window.scrollTo 0, 1
@@ -131,7 +128,7 @@ setupGame = ->
 	$("#menuViewContainer").addClass "enableTransitions"
 	$("#menuViewContainer").addClass "moveDown"
 	setupCanvas setupShips: null
-	history.replaceState state: "setupShips", "", ""
+	history.replaceState state: "inGame", "", ""
 
 gotoGameOverMenu = (msg) ->
 	$("#gameOver_msg").text msg ? "Something's happened."
@@ -142,18 +139,34 @@ gotoGameOverMenu = (msg) ->
 	$("#newMenu").addClass "moveRight"
 	$("#joinMenu").addClass "moveRight"
 	$("#gameOverMenu").removeClass "moveLeft"
+	$("#friendPlacingMenu").addClass "moveRight"
 	$("#menuViewContainer").addClass "enableTransitions"
 	$("#menuViewContainer").removeClass "moveDown"
 	history.replaceState null, "", ""
+
+showFriendPlacingMenu = ->
+	$("#menuView").removeClass "enableTransitions"
+	$("#mainMenu").addClass "moveLeft"
+	$("#newMenu").addClass "moveRight"
+	$("#joinMenu").addClass "moveRight"
+	$("#gameOverMenu").removeClass "moveLeft"
+	$("#friendPlacingMenu").removeClass "moveRight"
+	$("#menuViewContainer").addClass "enableTransitions"
+	$("#menuViewContainer").removeClass "moveDown"
+
+hideFriendPlacingMenu = ->	
+	$("#menuViewContainer").addClass "moveDown"
 
 setupCanvas = (data) ->
 	canvasThis = this
 	mainLayer = project.activeLayer
 	mainLayer.children[0].remove() while mainLayer.children.length > 0
+	view.draw()
 	return $("#canvas").css "display", "none" if data.reset? and data.reset
 	
 	$("#canvas").css "display", "block"
-	view.draw()
+	inactiveTool = new Tool()
+	inactiveTool.activate()
 	
 	class Game
 		class @Board
@@ -216,8 +229,6 @@ setupCanvas = (data) ->
 		mainLayer.activate()
 		yours = new Group [Game.yours.board.back, yoursGrid, Game.yours.board.front]
 		Game.yours.board.symbol = new Symbol yours
-		# yours_p = yours_s.place [160 * wdp, 260 * wdp]
-		# yours_p.scale 0.3, [160 * wdp, 410 * wdp]
 	
 	# Rotate Button
 	do =>
@@ -287,6 +298,10 @@ setupCanvas = (data) ->
 			select.visible = true
 		ship.deselect = ->
 			select.visible = false
+		ship.sunk = ->
+			line.strokeColor = "red"
+		ship.unsunk = ->
+			line.strokeColor = "white"
 		ship.boundary =
 			horizontal: new Rectangle
 				x: -(150 - 15 * n) * wdp
@@ -328,8 +343,15 @@ setupCanvas = (data) ->
 		redBack.fillColor.alpha = 0.5
 		@redBack_s = new Symbol redBack
 	
+	# Shot
+	do =>
+		shot = new Path.Circle [0, 0], 5
+		shot.style = fillColor: "white"
+		@shot_s = new Symbol shot
+	
 	# Setup Ships
 	do =>
+		$("#setupShipsOverlay").css "display", "block"
 		Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 		@rotate_p = @rotate_s.place [261 * wdp, 335 * wdp]
 		@next_p = @next_s.place [296 * wdp, 335 * wdp]
@@ -446,6 +468,18 @@ setupCanvas = (data) ->
 					validator.addInvalidRedBacks()
 				else
 					# Done setting ships
+					$("setupShipsOverlay").css "display", "none"
+					selectedShip.deselect()
+					inactiveTool.activate()
+					layout = {}
+					for str, ship of Game.mine.ships then layout[str] =
+						coordinates: ship.bounds.topLeft.divide(wdp).add([135, 135]).divide 30
+						orientation: ship.orientation
+					socket.emit "setShips", layout
+					@next_p.remove()
+					@rotate_p.remove()
+					Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+					Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
 				@next_s.mouseDown()
 			else
 				for str, ship of Game.mine.ships
@@ -468,55 +502,62 @@ setupCanvas = (data) ->
 		tool.onMouseUp = (e) =>
 			@rotate_s.mouseUp()
 			@next_s.mouseUp()
-			validator.addInvalidRedBacks() if prevPos?
+			if prevPos?
+				clearTimeout @va
+				@va = async 200, validator.addInvalidRedBacks
 		tool.activate()
 	
 	activateYours = (e) =>
 		if e.time > 0.2
 			view.onFrame = null
-			@mine_p.remove()
-			@mine_p = mine_s.place [160 * wdp, 160 * wdp]
-			@mine_p.scale 0.3, [160 * wdp, 10 * wdp]
-			@yours_p.remove()
-			@yours_p = yours_s.place [160 * wdp, 260 * wdp]
-			@yours_p.scale 1, [160 * wdp, 410 * wdp]
+			Game.mine.board.placed.remove()
+			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+			Game.mine.board.placed.scale 0.3, [160 * wdp, 10 * wdp]
+			Game.yours.board.placed.remove()
+			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+			Game.yours.board.placed.scale 1, [160 * wdp, 410 * wdp]
 		else
-			@mine_p.remove()
-			@mine_p = mine_s.place [160 * wdp, 160 * wdp]
-			@mine_p.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
-			@yours_p.remove()
-			@yours_p = yours_s.place [160 * wdp, 260 * wdp]
-			@yours_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
+			Game.mine.board.placed.remove()
+			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+			Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
+			Game.yours.board.placed.remove()
+			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+			Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
 
 	activateMine = (e) =>
 		if e.time > 0.2
 			view.onFrame = null
-			@yours_p.remove()
-			@yours_p = yours_s.place [160 * wdp, 260 * wdp]
-			@yours_p.scale 0.3, [160 * wdp, 410 * wdp]
-			@mine_p.remove()
-			@mine_p = mine_s.place [160 * wdp, 160 * wdp]
-			@mine_p.scale 1, [160 * wdp, 10 * wdp]
+			Game.yours.board.placed.remove()
+			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+			Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
+			Game.mine.board.placed.remove()
+			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+			Game.mine.board.placed.scale 1, [160 * wdp, 10 * wdp]
 		else
-			@yours_p.remove()
-			@yours_p = yours_s.place [160 * wdp, 260 * wdp]
-			@yours_p.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
-			@mine_p.remove()
-			@mine_p = mine_s.place [160 * wdp, 160 * wdp]
-			@mine_p.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
-
-	###
-	tool1 = new Tool()
-	tool1.onMouseDown = (e) ->
+			Game.yours.board.placed.remove()
+			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+			Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
+			Game.mine.board.placed.remove()
+			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+			Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
+	
+	activeTool = new Tool()
+	activeTool.onMouseUp = (e) ->
+		# ...
+	
+	myTurn = ->
 		view.onFrame = activateYours
-		tool2.activate()
-
-	tool2 = new Tool()
-	tool2.onMouseDown = (e) ->
+		activeTool.activate()
+	
+	yourTurn = ->
 		view.onFrame = activateMine
-		tool1.activate()
-	tool1.activate()
-	###
+		inactiveTool.activate()
+	
+	socket.on "yourTurn", myTurn
+	socket.on "theirTurn", yourTurn
+	
+	socket.on "shotAt", (data) ->
+		# ...
 	
 	view.draw()
 
