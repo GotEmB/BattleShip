@@ -43,6 +43,7 @@ window.onpopstate = (e) ->
 		$("#joinMenu").addClass "moveRight"
 		$("#gameOverMenu").addClass "moveLeft"
 		$("#friendPlacingMenu").addClass "moveRight"
+		$("#dialogMenu").addClass "moveRight"
 		$("#menuViewContainer").addClass "enableTransitions"
 		$("#menuViewContainer").removeClass "moveDown"
 	else if e.state.state is "newMenu"
@@ -118,6 +119,9 @@ setupEvents = ->
 	
 	bindMouseDown "#gameOverOkay_btn", (e) ->
 		history.back()
+	
+	bindMouseDown "#dialogOkay_btn", (e) ->
+		$("#menuViewContainer").addClass "moveDown"
 
 setupGame = ->
 	async 550, ->
@@ -130,8 +134,9 @@ setupGame = ->
 	setupCanvas setupShips: null
 	history.replaceState state: "inGame", "", ""
 
-gotoGameOverMenu = (msg) ->
+gotoGameOverMenu = (msg, align) ->
 	$("#gameOver_msg").text msg ? "Something's happened."
+	$("#gameOver_msg").css "text-align", align ? "left"
 	async 550, -> setupCanvas reset: true
 	$("#menuView").removeClass "enableTransitions"
 	$("#mainMenu").removeClass "moveLeft"
@@ -140,6 +145,7 @@ gotoGameOverMenu = (msg) ->
 	$("#joinMenu").addClass "moveRight"
 	$("#gameOverMenu").removeClass "moveLeft"
 	$("#friendPlacingMenu").addClass "moveRight"
+	$("#dialogMenu").addClass "moveRight"
 	$("#menuViewContainer").addClass "enableTransitions"
 	$("#menuViewContainer").removeClass "moveDown"
 	history.replaceState null, "", ""
@@ -149,13 +155,26 @@ showFriendPlacingMenu = ->
 	$("#mainMenu").addClass "moveLeft"
 	$("#newMenu").addClass "moveRight"
 	$("#joinMenu").addClass "moveRight"
-	$("#gameOverMenu").removeClass "moveLeft"
+	$("#gameOverMenu").addClass "moveLeft"
 	$("#friendPlacingMenu").removeClass "moveRight"
+	$("#dialogMenu").addClass "moveRight"
 	$("#menuViewContainer").addClass "enableTransitions"
 	$("#menuViewContainer").removeClass "moveDown"
 
 hideFriendPlacingMenu = ->	
 	$("#menuViewContainer").addClass "moveDown"
+
+showDialog = (msg) ->
+	$("#dialog_desc").text msg ? "I'm supposed to say somthing to you."
+	$("#menuView").removeClass "enableTransitions"
+	$("#mainMenu").addClass "moveLeft"
+	$("#newMenu").addClass "moveRight"
+	$("#joinMenu").addClass "moveRight"
+	$("#gameOverMenu").addClass "moveLeft"
+	$("#friendPlacingMenu").addClass "moveRight"
+	$("#dialogMenu").removeClass "moveRight"
+	$("#menuViewContainer").addClass "enableTransitions"
+	$("#menuViewContainer").removeClass "moveDown"
 
 setupCanvas = (data) ->
 	canvasThis = this
@@ -334,7 +353,7 @@ setupCanvas = (data) ->
 					when "destroyer" then 2
 				Game[player].board.front.addChild Game[player].ships[ship]
 				Game[player].ships[ship].visible = false
-				Game[player].ships[ship].select()
+				Game[player].ships[ship].select() if player is "mine"
 	
 	# Red Backs
 	do =>
@@ -343,11 +362,24 @@ setupCanvas = (data) ->
 		redBack.fillColor.alpha = 0.5
 		@redBack_s = new Symbol redBack
 	
+	# Cursor
+	do =>
+		@cursor = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		@cursor.style = fillColor: "yellow"
+		@cursor.fillColor.alpha = 0.5
+		@cursor.remove()
+	
 	# Shot
 	do =>
-		shot = new Path.Circle [0, 0], 5
+		shot = new Path.Circle [0, 0], 5 * wdp
 		shot.style = fillColor: "white"
 		@shot_s = new Symbol shot
+	
+	# Flag
+	do =>
+		flag = new Path.Circle [0, 0], 2 * wdp
+		flag.style = fillColor: "white"
+		@flag_s = new Symbol flag
 	
 	# Setup Ships
 	do =>
@@ -467,6 +499,7 @@ setupCanvas = (data) ->
 					shipMover.currentPos = selectedShip.position
 					validator.addInvalidRedBacks()
 				else
+					return showDialog "Ships cannot touch or overlap each other." if Game.mine.board.back.children.length > 0
 					# Done setting ships
 					$("setupShipsOverlay").css "display", "none"
 					selectedShip.deselect()
@@ -476,6 +509,7 @@ setupCanvas = (data) ->
 						coordinates: ship.bounds.topLeft.divide(wdp).add([135, 135]).divide 30
 						orientation: ship.orientation
 					socket.emit "setShips", layout
+					showFriendPlacingMenu()
 					@next_p.remove()
 					@rotate_p.remove()
 					Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
@@ -507,58 +541,128 @@ setupCanvas = (data) ->
 				@va = async 200, validator.addInvalidRedBacks
 		tool.activate()
 	
-	activateYours = (e) =>
-		if e.time > 0.2
-			view.onFrame = null
-			Game.mine.board.placed.remove()
-			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
-			Game.mine.board.placed.scale 0.3, [160 * wdp, 10 * wdp]
-			Game.yours.board.placed.remove()
-			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
-			Game.yours.board.placed.scale 1, [160 * wdp, 410 * wdp]
-		else
-			Game.mine.board.placed.remove()
-			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
-			Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
-			Game.yours.board.placed.remove()
-			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
-			Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
+	# The Game
+	do =>
+		activateYours = (e) =>
+			if e.time > 0.2
+				view.onFrame = null
+				Game.mine.board.placed.remove()
+				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed.scale 0.3, [160 * wdp, 10 * wdp]
+				Game.yours.board.placed.remove()
+				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed.scale 1, [160 * wdp, 410 * wdp]
+			else
+				Game.mine.board.placed.remove()
+				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
+				Game.yours.board.placed.remove()
+				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
 
-	activateMine = (e) =>
-		if e.time > 0.2
-			view.onFrame = null
-			Game.yours.board.placed.remove()
-			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
-			Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
-			Game.mine.board.placed.remove()
-			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
-			Game.mine.board.placed.scale 1, [160 * wdp, 10 * wdp]
-		else
-			Game.yours.board.placed.remove()
-			Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
-			Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
-			Game.mine.board.placed.remove()
-			Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
-			Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
+		activateMine = (e) =>
+			if e.time > 0.2
+				view.onFrame = null
+				Game.yours.board.placed.remove()
+				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
+				Game.mine.board.placed.remove()
+				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed.scale 1, [160 * wdp, 10 * wdp]
+			else
+				Game.yours.board.placed.remove()
+				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
+				Game.mine.board.placed.remove()
+				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
 	
-	activeTool = new Tool()
-	activeTool.onMouseUp = (e) ->
-		# ...
+		class yoursHelper
+			@coordinatesFromMouse: (point) ->
+				coord = point.subtract(Game.yours.board.placed.position).divide(wdp).add([135, 135]).divide(30)
+				coord.x = Math.round coord.x
+				coord.y = Math.round coord.y
+				coord
+			@gridPositionFromCoordinates: (coordinates) ->
+				coordinates.multiply(30).subtract([135, 135]).multiply wdp
+			@gridBoundsFromCoordinates: (coordinates) ->
+				point = @gridPositionFromCoordinates coordinates
+				new Rectangle
+					x: point.x - 15 * wdp
+					y: point.y - 15 * wdp
+					width: 30 * wdp
+					height: 30 * wdp
 	
-	myTurn = ->
-		view.onFrame = activateYours
-		activeTool.activate()
-	
-	yourTurn = ->
-		view.onFrame = activateMine
-		inactiveTool.activate()
-	
-	socket.on "yourTurn", myTurn
-	socket.on "theirTurn", yourTurn
-	
-	socket.on "shotAt", (data) ->
-		# ...
-	
+		activeTool = new Tool()
+		cursorOn = false
+		activeTool.onMouseDown = (e) =>
+			coordinates = yoursHelper.coordinatesFromMouse e.point
+			gridPosition = yoursHelper.gridPositionFromCoordinates coordinates
+			if _(Game.yours.board.back.children).any((x) ->
+				x.symbol? and x.symbol is @redBack_s and e.point.subtract(Game.yours.board.placed.position).isInside x.bounds)
+				cursorOn = false
+			else if cursorOn and e.point.subtract(Game.yours.board.placed.position).isInside @cursor.bounds
+				cursorOn = false
+				@cursor.remove()
+				inactiveTool.activate()
+				_.chain(Game.yours.board.front.children)
+					.filter((x) -> x.symbol? and x.symbol is @flag_s and gridPosition.isInside x.bounds)
+					.each (x) -> x.remove()
+				Game.yours.board.back.activate()
+				@redBack_s.place gridPosition
+				socket.emit "kaboom", coordinates, (result) ->
+					switch result.result
+						when "hit"
+							Game.yours.board.front.activate()
+							@shot.place gridPosition
+						when "sunk"
+							ship = Game.yours.ships[result.ship.type]
+							ship.rotate 90 if result.ship.orientation is "vertical"
+							shipCoords = new Point(result.ship.coordinates)
+							if result.ship.orientation is "horizontal"
+								shipCoords.x += ship.size / 2
+							else
+								shipCoords.y += ship.size / 2
+							ship.position = yoursHelper.gridPositionFromCoordinates shipCoords
+							ship.visible = true
+						when "gameOver"
+							showGameOverMenu "You Won!", "center"
+					async 1000, yourTurn if result.result is "gameOver"
+			else
+				cursorOn = true
+				Game.yours.board.back.addChild @cursor
+				@cursor.position = gridPosition
+				flags = _(Game.yours.board.front.children).filter((x) -> x.symbol? and x.symbol is @flag_s and gridPosition.isInside x.bounds)
+				if flags.length is 0
+					Game.yours.board.back.activate()
+					@flag_s.place gridPosition
+				else
+					_(flags).each (x) -> x.remove()
+				view.onFrame = (e) ->
+					if e.time > 1
+						view.onFrame = null
+						cursorOn = false
+						@cursor.remove()
+					else
+						@cursor.opacity = 1 - easeInOut e.time
+		
+		myTurn = ->
+			hideFriendPlacingMenu()
+			view.onFrame = activateYours
+			activeTool.activate()
+		
+		yourTurn = ->
+			hideFriendPlacingMenu()
+			view.onFrame = activateMine
+			inactiveTool.activate()
+		
+		socket.on "yourTurn", myTurn
+		socket.on "theirTurn", yourTurn
+		
+		socket.on "shotAt", (data) ->
+			switch data.result
+				when "hit"
+				#...
 	view.draw()
 
 $(document).ready ->
