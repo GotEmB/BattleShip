@@ -200,8 +200,9 @@ setupCanvas = (data) ->
 			cruiser: null
 			destroyer: null
 		class @Player
-			board: new Game.Board()
-			ships: new Game.Ships()
+			constructor: ->
+				@board = new Game.Board()
+				@ships = new Game.Ships()
 		@mine: new Game.Player()
 		@yours: new Game.Player()
 	
@@ -375,6 +376,12 @@ setupCanvas = (data) ->
 		shot.style = fillColor: "white"
 		@shot_s = new Symbol shot
 	
+	# Red Shot
+	do =>
+		redShot = new Path.Circle [0, 0], 5 * wdp
+		redShot.style = fillColor: "red"
+		@redShot_s = new Symbol redShot
+	
 	# Flag
 	do =>
 		flag = new Path.Circle [0, 0], 2 * wdp
@@ -501,7 +508,7 @@ setupCanvas = (data) ->
 				else
 					return showDialog "Ships cannot touch or overlap each other." if Game.mine.board.back.children.length > 0
 					# Done setting ships
-					$("setupShipsOverlay").css "display", "none"
+					$("#setupShipsOverlay").css "display", "none"
 					selectedShip.deselect()
 					inactiveTool.activate()
 					layout = {}
@@ -512,7 +519,7 @@ setupCanvas = (data) ->
 					showFriendPlacingMenu()
 					@next_p.remove()
 					@rotate_p.remove()
-					Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+					Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 					Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
 				@next_s.mouseDown()
 			else
@@ -544,42 +551,44 @@ setupCanvas = (data) ->
 	# The Game
 	do =>
 		activateYours = (e) =>
+			mainLayer.activate()
 			if e.time > 0.2
 				view.onFrame = null
 				Game.mine.board.placed.remove()
-				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 				Game.mine.board.placed.scale 0.3, [160 * wdp, 10 * wdp]
 				Game.yours.board.placed.remove()
-				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 				Game.yours.board.placed.scale 1, [160 * wdp, 410 * wdp]
 			else
 				Game.mine.board.placed.remove()
-				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 				Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 10 * wdp]
 				Game.yours.board.placed.remove()
-				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 				Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 410 * wdp]
 
 		activateMine = (e) =>
+			mainLayer.activate()
 			if e.time > 0.2
 				view.onFrame = null
 				Game.yours.board.placed.remove()
-				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 				Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
 				Game.mine.board.placed.remove()
-				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 				Game.mine.board.placed.scale 1, [160 * wdp, 10 * wdp]
 			else
 				Game.yours.board.placed.remove()
-				Game.yours.board.placed = yours_s.place [160 * wdp, 260 * wdp]
+				Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 				Game.yours.board.placed.scale 1.0 - 0.7 * easeInOut(e.time / 0.2), [160 * wdp, 410 * wdp]
 				Game.mine.board.placed.remove()
-				Game.mine.board.placed = mine_s.place [160 * wdp, 160 * wdp]
+				Game.mine.board.placed = Game.mine.board.symbol.place [160 * wdp, 160 * wdp]
 				Game.mine.board.placed.scale 1.0 - 0.7 * easeInOut(1 - e.time / 0.2), [160 * wdp, 10 * wdp]
 	
-		class yoursHelper
-			@coordinatesFromMouse: (point) ->
-				coord = point.subtract(Game.yours.board.placed.position).divide(wdp).add([135, 135]).divide(30)
+		class gridHelper
+			@coordinatesFromMouse: (player, point) ->
+				coord = point.subtract(Game[player].board.placed.position).divide(wdp).add([135, 135]).divide(30)
 				coord.x = Math.round coord.x
 				coord.y = Math.round coord.y
 				coord
@@ -596,8 +605,8 @@ setupCanvas = (data) ->
 		activeTool = new Tool()
 		cursorOn = false
 		activeTool.onMouseDown = (e) =>
-			coordinates = yoursHelper.coordinatesFromMouse e.point
-			gridPosition = yoursHelper.gridPositionFromCoordinates coordinates
+			coordinates = gridHelper.coordinatesFromMouse "yours", e.point
+			gridPosition = gridHelper.gridPositionFromCoordinates coordinates
 			if _(Game.yours.board.back.children).any((x) ->
 				x.symbol? and x.symbol is @redBack_s and e.point.subtract(Game.yours.board.placed.position).isInside x.bounds)
 				cursorOn = false
@@ -614,7 +623,7 @@ setupCanvas = (data) ->
 					switch result.result
 						when "hit"
 							Game.yours.board.front.activate()
-							@shot.place gridPosition
+							@shot_s.place gridPosition
 						when "sunk"
 							ship = Game.yours.ships[result.ship.type]
 							ship.rotate 90 if result.ship.orientation is "vertical"
@@ -623,11 +632,11 @@ setupCanvas = (data) ->
 								shipCoords.x += ship.size / 2
 							else
 								shipCoords.y += ship.size / 2
-							ship.position = yoursHelper.gridPositionFromCoordinates shipCoords
+							ship.position = gridHelper.gridPositionFromCoordinates shipCoords
 							ship.visible = true
 						when "gameOver"
-							showGameOverMenu "You Won!", "center"
-					async 1000, yourTurn if result.result is "gameOver"
+							showGameOverMenu "You Won! :D", "center"
+					async 1000, yourTurn unless result.result is "gameOver"
 			else
 				cursorOn = true
 				Game.yours.board.back.addChild @cursor
@@ -638,7 +647,7 @@ setupCanvas = (data) ->
 					@flag_s.place gridPosition
 				else
 					_(flags).each (x) -> x.remove()
-				view.onFrame = (e) ->
+				view.onFrame = (e) =>
 					if e.time > 1
 						view.onFrame = null
 						cursorOn = false
@@ -660,9 +669,19 @@ setupCanvas = (data) ->
 		socket.on "theirTurn", yourTurn
 		
 		socket.on "shotAt", (data) ->
+			Game.mine.board.back.activate()
+			gridPosition = gridHelper.gridPositionFromCoordinates data.shotAt
+			@redBack_s.place gridPosition
 			switch data.result
 				when "hit"
-				#...
+					Game.mine.board.front.activate()
+					@redShot_s.place gridPosition
+				when "sunk"
+					Game.mine.ships[data.ship.type].sunk()
+				when "gameOver"
+					showGameOverMenu "You Lost! :(", "center"
+			async 1000, myTurn unless data.result is "gameOver"
+	
 	view.draw()
 
 $(document).ready ->

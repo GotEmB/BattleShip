@@ -28,7 +28,7 @@ class BattleShip
 			@socket = socket
 		ships: null
 		shotAt: []
-		kaboom: (coordinates) ->
+		kaboom: (coordinates) =>
 			@shotAt.push new BattleShip.Coordinates coordinates
 			for ship, i in [@ships.aircraftCarrier, @ships.battleShip, @ships.submarine, @ships.cruiser, @ships.destroyer]
 				continue if ship.sunk
@@ -54,17 +54,19 @@ class BattleShip
 					return if op.contains "safe" then result: "hit"
 					else
 						ship.sunk = true
-						result: "sunk"
-						ship:
-							type:
-								switch i
-									when 0 then "aircraftCarrier"
-									when 1 then "battleShip"
-									when 2 then "submarine"
-									when 3 then "cruiser"
-									when 4 then "destroyer"
-							coordinates: ship.coordinates
-							orientation: ship.orientation
+						if fluent.Dictify(@ships).all((x) -> x.sunk) then result: "gameOver"
+						else
+							result: "sunk"
+							ship:
+								type:
+									switch i
+										when 0 then "aircraftCarrier"
+										when 1 then "battleShip"
+										when 2 then "submarine"
+										when 3 then "cruiser"
+										when 4 then "destroyer"
+								coordinates: ship.coordinates
+								orientation: ship.orientation
 			result: "miss"
 	class @Game
 		constructor: ->
