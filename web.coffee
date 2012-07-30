@@ -34,7 +34,7 @@ class BattleShip
 				continue if ship.sunk
 				len = if i is 0 then 5 else if i is 1 then 4 else if i is 4 then 2 else 3
 				op = 
-					if orientation is "horizontal"
+					if ship.orientation is "horizontal"
 						for j in [0...i]
 							if coordinates.x is ship.coordinates.x + j and coordinates.y is ship.coordinates.y
 								"kaboom"

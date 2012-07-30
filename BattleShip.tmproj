@@ -56,26 +56,26 @@
 				<key>column</key>
 				<integer>3</integer>
 				<key>line</key>
-				<integer>882</integer>
+				<integer>1056</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>831</integer>
+			<integer>1005</integer>
 		</dict>
 		<key>src/page.coffee</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>8</integer>
+				<integer>24</integer>
 				<key>line</key>
-				<integer>664</integer>
+				<integer>660</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>619</integer>
+			<integer>638</integer>
 		</dict>
 		<key>src/page.styl</key>
 		<dict>
@@ -96,14 +96,14 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>17</integer>
+				<integer>12</integer>
 				<key>line</key>
-				<integer>67</integer>
+				<integer>60</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>117</integer>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>

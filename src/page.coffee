@@ -193,6 +193,7 @@ setupCanvas = (data) ->
 			placed: null
 			back: null
 			front: null
+			position: => ((mtx) => new Point [mtx._tx, mtx._ty])(@placed._matrix)
 		class @Ships
 			aircraftCarrier: null
 			battleShip: null
@@ -398,6 +399,7 @@ setupCanvas = (data) ->
 		selectedShip.visible = true
 		selectedShip.position = selectedShip.boundary[selectedShip.orientation].topLeft
 		prevPos = null
+		console.log "PrevPos: null"
 		class shipMover
 			@moveto: (endPos) =>
 				startPos = @currentPos
@@ -413,6 +415,7 @@ setupCanvas = (data) ->
 				return unless @currentPos.add(delta).isInside selectedShip.boundary[selectedShip.orientation]
 				@moveto @currentPos.add delta
 				prevPos = prevPos.add delta
+				console.log "PrevPos: {x: #{prevPos.x}, y: #{prevPos.y}}"
 			@rotate: =>
 				return if view.onFrame?
 				validator.removeInvalidRedBacks()
@@ -486,6 +489,7 @@ setupCanvas = (data) ->
 		shipMover.currentPos = selectedShip.position
 		tool.onMouseDown = (e) =>
 			prevPos = null
+			console.log "PrevPos: null"
 			if e.point.isInside @rotate_p.bounds
 				shipMover.rotate()
 				@rotate_s.mouseDown()
@@ -519,13 +523,14 @@ setupCanvas = (data) ->
 					showFriendPlacingMenu()
 					@next_p.remove()
 					@rotate_p.remove()
+					mainLayer.activate()
 					Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 					Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
 				@next_s.mouseDown()
 			else
 				for str, ship of Game.mine.ships
 					continue if selectedShip is ship
-					if ship.visible and e.point.subtract(Game.mine.board.placed.position).isInside ship.gridBounds()
+					if ship.visible and e.point.subtract(Game.mine.board.position()).isInside ship.gridBounds()
 						selectedShip.deselect()
 						selectedShip = ship
 						selectedShip.select()
@@ -533,9 +538,11 @@ setupCanvas = (data) ->
 						return
 				validator.removeInvalidRedBacks()
 				prevPos = e.downPoint
+				console.log "PrevPos: {x: #{prevPos.x}, y: #{prevPos.y}}"
 		tool.onMouseDrag = (e) ->
 			return if prevPos is null
 			delta = e.point.subtract prevPos
+			console.log "delta: {x: #{delta.x}, y: #{delta.y}}"
 			shipMover.moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
 			shipMover.moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
 			shipMover.moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
@@ -588,7 +595,7 @@ setupCanvas = (data) ->
 	
 		class gridHelper
 			@coordinatesFromMouse: (player, point) ->
-				coord = point.subtract(Game[player].board.placed.position).divide(wdp).add([135, 135]).divide(30)
+				coord = point.subtract(Game[player].board.position()).divide(wdp).add([135, 135]).divide(30)
 				coord.x = Math.round coord.x
 				coord.y = Math.round coord.y
 				coord
@@ -605,13 +612,19 @@ setupCanvas = (data) ->
 		activeTool = new Tool()
 		cursorOn = false
 		activeTool.onMouseDown = (e) =>
+			console.log "MouseDown"
 			coordinates = gridHelper.coordinatesFromMouse "yours", e.point
 			gridPosition = gridHelper.gridPositionFromCoordinates coordinates
-			if _(Game.yours.board.back.children).any((x) ->
-				x.symbol? and x.symbol is @redBack_s and e.point.subtract(Game.yours.board.placed.position).isInside x.bounds)
+			if _(Game.yours.board.back.children).any((x) =>
+				x.symbol? and x.symbol is @redBack_s and e.point.subtract(Game.yours.board.position()).isInside x.bounds)
+				console.log "cursor Off"
 				cursorOn = false
-			else if cursorOn and e.point.subtract(Game.yours.board.placed.position).isInside @cursor.bounds
+				view.onFrame = null
+				@cursor.remove()
+			else if cursorOn and e.point.subtract(Game.yours.board.position()).isInside @cursor.bounds
+				console.log "Double Click"
 				cursorOn = false
+				view.onFrame = null
 				@cursor.remove()
 				inactiveTool.activate()
 				_.chain(Game.yours.board.front.children)
@@ -619,7 +632,7 @@ setupCanvas = (data) ->
 					.each (x) -> x.remove()
 				Game.yours.board.back.activate()
 				@redBack_s.place gridPosition
-				socket.emit "kaboom", coordinates, (result) ->
+				socket.emit "kaboom", coordinates, (result) =>
 					switch result.result
 						when "hit"
 							Game.yours.board.front.activate()
@@ -638,12 +651,13 @@ setupCanvas = (data) ->
 							showGameOverMenu "You Won! :D", "center"
 					async 1000, yourTurn unless result.result is "gameOver"
 			else
+				console.log "Single Click"
 				cursorOn = true
 				Game.yours.board.back.addChild @cursor
 				@cursor.position = gridPosition
-				flags = _(Game.yours.board.front.children).filter((x) -> x.symbol? and x.symbol is @flag_s and gridPosition.isInside x.bounds)
+				flags = _(Game.yours.board.front.children).filter((x) => x.symbol? and x.symbol is @flag_s and gridPosition.isInside x.bounds)
 				if flags.length is 0
-					Game.yours.board.back.activate()
+					Game.yours.board.front.activate()
 					@flag_s.place gridPosition
 				else
 					_(flags).each (x) -> x.remove()
@@ -668,9 +682,9 @@ setupCanvas = (data) ->
 		socket.on "yourTurn", myTurn
 		socket.on "theirTurn", yourTurn
 		
-		socket.on "shotAt", (data) ->
+		socket.on "shotAt", (data) =>
 			Game.mine.board.back.activate()
-			gridPosition = gridHelper.gridPositionFromCoordinates data.shotAt
+			gridPosition = gridHelper.gridPositionFromCoordinates new Point data.shotAt
 			@redBack_s.place gridPosition
 			switch data.result
 				when "hit"
