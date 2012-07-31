@@ -108,3 +108,17 @@ div.gameId_desc {
   position: absolute;
   -webkit-box-shadow: none;
 }
+#setupShipsOverlay {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  width: 320px;
+  height: 416px;
+  -webkit-transform-origin: 0px 0px;
+}
+#setupShips_desc {
+  padding: 20px;
+  color: #fff;
+  position: absolute;
+  bottom: 0;
+}

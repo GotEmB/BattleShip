@@ -1,11 +1,11 @@
 # Fluent Stuff
 exports.Dictify = (obj) ->
 	ret = []
-	for key of this
+	for key of obj
 		if key isnt "__proto__"
 			ret.push
 				key: key
-				value: @[key]
+				value: obj[key]
 	ret
 
 # Array

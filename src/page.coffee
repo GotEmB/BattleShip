@@ -2,10 +2,11 @@ easeInOut = (x) -> Math.pow (Math.sin((x - 0.5) * Math.PI) + 1) * 0.5, 2
 roundTo1 = (x) -> Math.round(x * 10) / 10
 
 async = (a, b) ->
-	if b?
-		setTimeout b, a
-	else
-		setTimeout a, 0
+	func = if typeof a is "function" then a else if typeof b is "function" then b else null
+	timeOut = if typeof a is "number" then a else if typeof b is "number" then b else null
+	console.log func: func ? null, timeOut: timeOut ? null
+	return unless func?
+	setTimeout func, timeOut ? 0
 
 bindMouseDown = (sel, fn) ->
 	$(sel).bind "mousedown", fn
@@ -78,6 +79,8 @@ setupPage = ->
 
 	$("#menuView").css "-webkit-transform", "scale(#{wdp})"
 	$("#menuView").css "display", "block"
+	
+	$("#setupShipsOverlay").css "-webkit-transform", "scale(#{wdp})"
 	
 	$("#pleaseWait div.container div.spinner").css "width", "#{60 * wdp}px"
 	$("#pleaseWait div.container div.spinner").css "height", "#{60 * wdp}px"
@@ -178,7 +181,8 @@ showDialog = (msg) ->
 
 setupCanvas = (data) ->
 	canvasThis = this
-	mainLayer = project.activeLayer
+	mainLayer = project.layers[0]
+	mainLayer.activate()
 	mainLayer.children[0].remove() while mainLayer.children.length > 0
 	view.draw()
 	return $("#canvas").css "display", "none" if data.reset? and data.reset
@@ -314,15 +318,22 @@ setupCanvas = (data) ->
 			strokeCap: "round"
 		select.strokeColor.alpha = 0.25
 		select.visible = false
-		ship = new Group [line, select]
+		red = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
+		red.style =
+			strokeColor: "red"
+			strokeWidth: 10 * wdp
+			strokeCap: "round"
+		red.strokeColor.alpha = 0.5
+		red.visible = false
+		ship = new Group [line, select, red]
 		ship.select = ->
 			select.visible = true
 		ship.deselect = ->
 			select.visible = false
 		ship.sunk = ->
-			line.strokeColor = "red"
+			red.visible = true
 		ship.unsunk = ->
-			line.strokeColor = "white"
+			red.visible = false
 		ship.boundary =
 			horizontal: new Rectangle
 				x: -(150 - 15 * n) * wdp
@@ -377,17 +388,21 @@ setupCanvas = (data) ->
 		shot.style = fillColor: "white"
 		@shot_s = new Symbol shot
 	
-	# Red Shot
-	do =>
-		redShot = new Path.Circle [0, 0], 5 * wdp
-		redShot.style = fillColor: "red"
-		@redShot_s = new Symbol redShot
-	
 	# Flag
 	do =>
 		flag = new Path.Circle [0, 0], 2 * wdp
 		flag.style = fillColor: "white"
 		@flag_s = new Symbol flag
+	
+	# Red Shot
+	do =>
+		shot = new Path.Circle [0, 0], 3 * wdp
+		shot.style = fillColor: "white"
+		red = new Path.Circle [0, 0], 3 * wdp
+		red.style = fillColor: "red"
+		red.fillColor.alpha = 0.5
+		redShot = new Group [shot, red]
+		@redShot_s = new Symbol redShot
 	
 	# Setup Ships
 	do =>
@@ -399,7 +414,6 @@ setupCanvas = (data) ->
 		selectedShip.visible = true
 		selectedShip.position = selectedShip.boundary[selectedShip.orientation].topLeft
 		prevPos = null
-		console.log "PrevPos: null"
 		class shipMover
 			@moveto: (endPos) =>
 				startPos = @currentPos
@@ -415,7 +429,6 @@ setupCanvas = (data) ->
 				return unless @currentPos.add(delta).isInside selectedShip.boundary[selectedShip.orientation]
 				@moveto @currentPos.add delta
 				prevPos = prevPos.add delta
-				console.log "PrevPos: {x: #{prevPos.x}, y: #{prevPos.y}}"
 			@rotate: =>
 				return if view.onFrame?
 				validator.removeInvalidRedBacks()
@@ -430,11 +443,11 @@ setupCanvas = (data) ->
 				endPos.y = newBoundary.bottom if endPos.y > newBoundary.bottom
 				@currentPos = endPos
 				delta = endPos.subtract startPos
-				transformMatrix = new Matrix
+				transformMatrix = new Matrix()
 				selectedShip.orientation = if selectedShip.orientation is "horizontal" then "vertical" else "horizontal"
 				view.onFrame = (e) ->
 					selectedShip.rotate -transformMatrix.rotation
-					transformMatrix = new Matrix
+					transformMatrix = new Matrix()
 					if e.time > 0.2
 						transformMatrix.rotate 90
 						selectedShip.rotate transformMatrix.rotation
@@ -484,12 +497,14 @@ setupCanvas = (data) ->
 						view.onFrame = null
 					else
 						redBack.opacity = easeInOut e.time / 0.2 for redBack in Game.mine.board.back.children
+		roundCoordinates = (point) -> new Point
+			x: Math.round point.x
+			y: Math.round point.y
 		tool = new Tool()
 		tool.maxDistance = 30 * wdp
 		shipMover.currentPos = selectedShip.position
 		tool.onMouseDown = (e) =>
 			prevPos = null
-			console.log "PrevPos: null"
 			if e.point.isInside @rotate_p.bounds
 				shipMover.rotate()
 				@rotate_s.mouseDown()
@@ -517,7 +532,7 @@ setupCanvas = (data) ->
 					inactiveTool.activate()
 					layout = {}
 					for str, ship of Game.mine.ships then layout[str] =
-						coordinates: ship.bounds.topLeft.divide(wdp).add([135, 135]).divide 30
+						coordinates: roundCoordinates ship.bounds.topLeft.divide(wdp).add([135, 135]).divide 30
 						orientation: ship.orientation
 					socket.emit "setShips", layout
 					showFriendPlacingMenu()
@@ -538,11 +553,9 @@ setupCanvas = (data) ->
 						return
 				validator.removeInvalidRedBacks()
 				prevPos = e.downPoint
-				console.log "PrevPos: {x: #{prevPos.x}, y: #{prevPos.y}}"
 		tool.onMouseDrag = (e) ->
 			return if prevPos is null
 			delta = e.point.subtract prevPos
-			console.log "delta: {x: #{delta.x}, y: #{delta.y}}"
 			shipMover.moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
 			shipMover.moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
 			shipMover.moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
@@ -612,17 +625,14 @@ setupCanvas = (data) ->
 		activeTool = new Tool()
 		cursorOn = false
 		activeTool.onMouseDown = (e) =>
-			console.log "MouseDown"
 			coordinates = gridHelper.coordinatesFromMouse "yours", e.point
 			gridPosition = gridHelper.gridPositionFromCoordinates coordinates
 			if _(Game.yours.board.back.children).any((x) =>
 				x.symbol? and x.symbol is @redBack_s and e.point.subtract(Game.yours.board.position()).isInside x.bounds)
-				console.log "cursor Off"
 				cursorOn = false
 				view.onFrame = null
 				@cursor.remove()
 			else if cursorOn and e.point.subtract(Game.yours.board.position()).isInside @cursor.bounds
-				console.log "Double Click"
 				cursorOn = false
 				view.onFrame = null
 				@cursor.remove()
@@ -633,6 +643,7 @@ setupCanvas = (data) ->
 				Game.yours.board.back.activate()
 				@redBack_s.place gridPosition
 				socket.emit "kaboom", coordinates, (result) =>
+					console.log result
 					switch result.result
 						when "hit"
 							Game.yours.board.front.activate()
@@ -640,18 +651,19 @@ setupCanvas = (data) ->
 						when "sunk"
 							ship = Game.yours.ships[result.ship.type]
 							ship.rotate 90 if result.ship.orientation is "vertical"
+							ship.orientation = result.ship.orientation
 							shipCoords = new Point(result.ship.coordinates)
 							if result.ship.orientation is "horizontal"
-								shipCoords.x += ship.size / 2
+								shipCoords.x += (ship.size - 1) / 2
 							else
-								shipCoords.y += ship.size / 2
+								shipCoords.y += (ship.size - 1) / 2
 							ship.position = gridHelper.gridPositionFromCoordinates shipCoords
 							ship.visible = true
 						when "gameOver"
-							showGameOverMenu "You Won! :D", "center"
-					async 1000, yourTurn unless result.result is "gameOver"
+							gotoGameOverMenu "You Won! :D", "center"
+					async 1000, if result.result is "miss" then yourTurn else if result.result isnt "gameOver" then do => activeTool.activate()
+					view.draw()
 			else
-				console.log "Single Click"
 				cursorOn = true
 				Game.yours.board.back.addChild @cursor
 				@cursor.position = gridPosition
@@ -683,18 +695,20 @@ setupCanvas = (data) ->
 		socket.on "theirTurn", yourTurn
 		
 		socket.on "shotAt", (data) =>
-			Game.mine.board.back.activate()
+			console.log data
 			gridPosition = gridHelper.gridPositionFromCoordinates new Point data.shotAt
+			Game.mine.board.back.activate()
 			@redBack_s.place gridPosition
-			switch data.result
+			switch data.result.result
 				when "hit"
 					Game.mine.board.front.activate()
 					@redShot_s.place gridPosition
 				when "sunk"
-					Game.mine.ships[data.ship.type].sunk()
+					Game.mine.ships[data.result.ship.type].sunk()
 				when "gameOver"
-					showGameOverMenu "You Lost! :(", "center"
-			async 1000, myTurn unless data.result is "gameOver"
+					gotoGameOverMenu "You Lost! :(", "center"
+			async 1000, if data.result.result is "miss" then myTurn
+			view.draw()
 	
 	view.draw()
 

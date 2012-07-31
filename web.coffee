@@ -26,8 +26,8 @@ class BattleShip
 	class @Player
 		constructor: (socket) ->
 			@socket = socket
+			@shotAt = []
 		ships: null
-		shotAt: []
 		kaboom: (coordinates) =>
 			@shotAt.push new BattleShip.Coordinates coordinates
 			for ship, i in [@ships.aircraftCarrier, @ships.battleShip, @ships.submarine, @ships.cruiser, @ships.destroyer]
@@ -35,7 +35,7 @@ class BattleShip
 				len = if i is 0 then 5 else if i is 1 then 4 else if i is 4 then 2 else 3
 				op = 
 					if ship.orientation is "horizontal"
-						for j in [0...i]
+						for j in [0...len]
 							if coordinates.x is ship.coordinates.x + j and coordinates.y is ship.coordinates.y
 								"kaboom"
 							else if @shotAt.any((coord) -> coord.x is ship.coordinates.x + j and coord.y is ship.coordinates.y)
@@ -43,7 +43,7 @@ class BattleShip
 							else
 								"safe"
 					else
-						for j in [0...i]
+						for j in [0...len]
 							if coordinates.x is ship.coordinates.x and coordinates.y is ship.coordinates.y + j
 								"kaboom"
 							else if @shotAt.any((coord) -> coord.x is ship.coordinates.x and coord.y is ship.coordinates.y + j)
@@ -54,7 +54,8 @@ class BattleShip
 					return if op.contains "safe" then result: "hit"
 					else
 						ship.sunk = true
-						if fluent.Dictify(@ships).all((x) -> x.sunk) then result: "gameOver"
+						console.log fluent.Dictify @ships
+						if fluent.Dictify(@ships).all((x) -> x.value.sunk) then result: "gameOver"
 						else
 							result: "sunk"
 							ship:
@@ -86,8 +87,6 @@ expressServer.configure ->
 	expressServer.use express.bodyParser()
 	expressServer.use (req, res, next) ->
 		req.url = "/page.html" if req.url is "/"
-		console.log "Request: #{req.path}"
-		console.log "User Agent: #{req.headers['user-agent']}"
 		next()
 	expressServer.use express.static "#{__dirname}/lib", maxAge: 31557600000, (err) -> console.log "Static: #{err}"
 	expressServer.use expressServer.router
@@ -95,7 +94,8 @@ expressServer.configure ->
 server = http.createServer expressServer
 
 io = socket_io.listen server
-io.on "connection", (socket) ->
+io.set "log level", 0
+io.sockets.on "connection", (socket) ->
 	
 	socket.on "resetAll", (callback) ->
 		if socket.game?
