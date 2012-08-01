@@ -26,37 +26,55 @@ wdp = window.devicePixelRatio ? 1
 viewport = document.querySelector "meta[name=viewport]"
 viewport.setAttribute 'content', "user-scalable=no, width=#{320 * wdp}, height=#{416 * wdp}, initial-scale=#{1.0 / wdp}, maximum-scale=#{1.0 / wdp}"
 
-socket = io.connect()
+canvas = null
 
+socket = io.connect()
 socket.on "connect", -> pleaseWait.hide()
 socket.on "friendJoined", -> setupGame()
 socket.on "friendDisconnected", -> gotoGameOverMenu "Your friend has left the game."
 
-window.onpopstate = (e) ->
-	if !e.state?
-		pleaseWait.show()
-		socket.emit "resetAll", -> pleaseWait.hide()
-		async 550, -> setupCanvas reset: true
-		$("#menuView").addClass "enableTransitions"
-		$("#mainMenu").removeClass "moveLeft"
-		$("#mainMenu").removeClass "moveRight"
-		$("#newMenu").addClass "moveRight"
-		$("#joinMenu").addClass "moveRight"
-		$("#gameOverMenu").addClass "moveLeft"
-		$("#friendPlacingMenu").addClass "moveRight"
-		$("#dialogMenu").addClass "moveRight"
-		$("#menuViewContainer").addClass "enableTransitions"
+class viewController
+	@viewStack: ["mainMenu"]
+	@push: (viewId, animate) =>
+		if animate ? true
+			$("#menuView").addClass "enableTransitions"
+		else
+			$("#menuView").removeClass "enableTransitions"
+		$("##{_(@viewStack).last()}").addClass "moveLeft"
+		$("##{viewId}").removeClass "moveRight"
+		@viewStack.push viewId
+	@pop: (animate) =>
+		if animate ? true
+			$("#menuView").addClass "enableTransitions"
+		else
+			$("#menuView").removeClass "enableTransitions"
+		$("##{_(@viewStack).last()}").addClass "moveRight"
+		@viewStack.pop()
+		$("##{_(@viewStack).last()}").removeClass "moveLeft"
+	@popTo: (viewId, animate) =>
+		$("#menuView").removeClass "enableTransitions"
+		@pop animate ? true unless _(@viewStack).last() is viewId
+		until _(@viewStack).last() is viewId
+			@pop false
+	@hideViewContainer: (animate) ->
+		if animate ? true
+			$("#menuViewContainer").addClass "enableTransitions"
+		else
+			$("#menuViewContainer").removeClass "enableTransitions"
+		$("#menuViewContainer").addClass "moveDown"
+	@showViewContainer: (animate) ->
+		if animate ? true
+			$("#menuViewContainer").addClass "enableTransitions"
+		else
+			$("#menuViewContainer").removeClass "enableTransitions"
 		$("#menuViewContainer").removeClass "moveDown"
-	else if e.state.state is "newMenu"
-		$("#menuView").removeClass "enableTransitions"
-		$("#mainMenu").addClass "moveLeft"
-		$("#newMenu").removeClass "moveRight"
-		$("#joinMenu").addClass "moveRight"
-	else if e.state.state is "joinMenu"
-		$("#menuView").removeClass "enableTransitions"
-		$("#mainMenu").addClass "moveLeft"
-		$("#newMenu").addClass "moveRight"
-		$("#joinMenu").removeClass "moveRight"
+
+window.onpopstate = (e) ->
+	pleaseWait.show()
+	socket.emit "resetAll", -> pleaseWait.hide()
+	async 550, -> setupCanvas reset: true
+	viewController.popTo "mainMenu"
+	viewController.showViewContainer()
 
 setupPage = ->
 	window.scrollTo 0, 1
@@ -67,20 +85,20 @@ setupPage = ->
 	
 	pleaseWait.show()
 
-	
 	canvas = document.getElementById "canvas"
 	canvas.setAttribute 'width', "#{320 * wdp}"
 	canvas.setAttribute 'height', "#{416 * wdp}"
 	paper.install window
-	paper.setup document.getElementById "canvas"
+	paper.setup canvas
 	
 	$("html, body").css "width", 320 * wdp
 	$("html, body").css "height", 416 * wdp
 
-	$("#menuView").css "-webkit-transform", "scale(#{wdp})"
 	$("#menuView").css "display", "block"
 	
-	$("#setupShipsOverlay").css "-webkit-transform", "scale(#{wdp})"
+	if wdp isnt 1
+		$("#menuView").css "-webkit-transform", "scale(#{wdp})"
+		$("#setupShipsOverlay").css "-webkit-transform", "scale(#{wdp})"
 	
 	$("#pleaseWait div.container div.spinner").css "width", "#{60 * wdp}px"
 	$("#pleaseWait div.container div.spinner").css "height", "#{60 * wdp}px"
@@ -95,9 +113,7 @@ setupEvents = ->
 		socket.emit "newGame", (data) ->
 			if data? and data.status is "Game created"
 				$("#gameId").text data.id
-				$("#menuView").addClass "enableTransitions"
-				$("#mainMenu").addClass "moveLeft"
-				$("#newMenu").removeClass "moveRight"
+				viewController.push "newMenu"
 				history.pushState state: "newMenu", "", ""
 			else
 				alert "Could not create game."
@@ -106,9 +122,7 @@ setupEvents = ->
 	
 	bindMouseDown "#joinGame_btn", (e) ->
 		$("#gameId_entry").text ""
-		$("#menuView").addClass "enableTransitions"
-		$("#mainMenu").addClass "moveLeft"
-		$("#joinMenu").removeClass "moveRight"
+		viewController.push "joinMenu"
 		history.pushState state: "joinMenu", "", ""
 	
 	bindMouseDown "#enterGameId_btn", (e) ->
@@ -124,16 +138,11 @@ setupEvents = ->
 		history.back()
 	
 	bindMouseDown "#dialogOkay_btn", (e) ->
-		$("#menuViewContainer").addClass "moveDown"
+		viewController.hideViewContainer()
 
 setupGame = ->
-	async 550, ->
-		$("#menuView").removeClass "enableTransitions"
-		$("#newMenu").addClass "moveRight"
-		$("#joinMenu").addClass "moveRight"
-		$("#mainMenu").removeClass "moveLeft"
-	$("#menuViewContainer").addClass "enableTransitions"
-	$("#menuViewContainer").addClass "moveDown"
+	async 550, -> viewController.popTo "mainMenu"
+	viewController.hideViewContainer()
 	setupCanvas setupShips: null
 	history.replaceState state: "inGame", "", ""
 
@@ -141,43 +150,24 @@ gotoGameOverMenu = (msg, align) ->
 	$("#gameOver_msg").text msg ? "Something's happened."
 	$("#gameOver_msg").css "text-align", align ? "left"
 	async 550, -> setupCanvas reset: true
-	$("#menuView").removeClass "enableTransitions"
-	$("#mainMenu").removeClass "moveLeft"
-	$("#mainMenu").addClass "moveRight"
-	$("#newMenu").addClass "moveRight"
-	$("#joinMenu").addClass "moveRight"
-	$("#gameOverMenu").removeClass "moveLeft"
-	$("#friendPlacingMenu").addClass "moveRight"
-	$("#dialogMenu").addClass "moveRight"
-	$("#menuViewContainer").addClass "enableTransitions"
-	$("#menuViewContainer").removeClass "moveDown"
+	viewController.popTo "mainMenu"
+	viewController.push "gameOverMenu", false
+	viewController.showViewContainer()
 	history.replaceState null, "", ""
 
 showFriendPlacingMenu = ->
-	$("#menuView").removeClass "enableTransitions"
-	$("#mainMenu").addClass "moveLeft"
-	$("#newMenu").addClass "moveRight"
-	$("#joinMenu").addClass "moveRight"
-	$("#gameOverMenu").addClass "moveLeft"
-	$("#friendPlacingMenu").removeClass "moveRight"
-	$("#dialogMenu").addClass "moveRight"
-	$("#menuViewContainer").addClass "enableTransitions"
-	$("#menuViewContainer").removeClass "moveDown"
+	viewController.popTo "mainMenu"
+	viewController.push "friendPlacingMenu", false
+	viewController.showViewContainer()
 
 hideFriendPlacingMenu = ->	
-	$("#menuViewContainer").addClass "moveDown"
+	viewController.hideViewContainer()
 
 showDialog = (msg) ->
 	$("#dialog_desc").text msg ? "I'm supposed to say somthing to you."
-	$("#menuView").removeClass "enableTransitions"
-	$("#mainMenu").addClass "moveLeft"
-	$("#newMenu").addClass "moveRight"
-	$("#joinMenu").addClass "moveRight"
-	$("#gameOverMenu").addClass "moveLeft"
-	$("#friendPlacingMenu").addClass "moveRight"
-	$("#dialogMenu").removeClass "moveRight"
-	$("#menuViewContainer").addClass "enableTransitions"
-	$("#menuViewContainer").removeClass "moveDown"
+	viewController.popTo "mainMenu"
+	viewController.push "dialogMenu", false
+	viewController.showViewContainer()
 
 setupCanvas = (data) ->
 	canvasThis = this
@@ -185,6 +175,11 @@ setupCanvas = (data) ->
 	mainLayer.activate()
 	mainLayer.children[0].remove() while mainLayer.children.length > 0
 	view.draw()
+	
+	socket.removeAllListeners "yourTurn"
+	socket.removeAllListeners "theirTurn"
+	socket.removeAllListeners "shotAt"
+	
 	return $("#canvas").css "display", "none" if data.reset? and data.reset
 	
 	$("#canvas").css "display", "block"
@@ -500,10 +495,10 @@ setupCanvas = (data) ->
 		roundCoordinates = (point) -> new Point
 			x: Math.round point.x
 			y: Math.round point.y
-		tool = new Tool()
-		tool.maxDistance = 30 * wdp
+		placeTool = new Tool()
+		placeTool.maxDistance = 30 * wdp
 		shipMover.currentPos = selectedShip.position
-		tool.onMouseDown = (e) =>
+		placeTool.onMouseDown = (e) =>
 			prevPos = null
 			if e.point.isInside @rotate_p.bounds
 				shipMover.rotate()
@@ -550,23 +545,23 @@ setupCanvas = (data) ->
 						selectedShip = ship
 						selectedShip.select()
 						shipMover.currentPos = selectedShip.position
-						return
+						return placeTool.onMouseDown e
 				validator.removeInvalidRedBacks()
 				prevPos = e.downPoint
-		tool.onMouseDrag = (e) ->
+		placeTool.onMouseDrag = (e) ->
 			return if prevPos is null
 			delta = e.point.subtract prevPos
 			shipMover.moveBy [30 * wdp, 0] if delta.x >= 30 * wdp
 			shipMover.moveBy [-30 * wdp, 0] if delta.x <= -30 * wdp
 			shipMover.moveBy [0, 30 * wdp] if delta.y >= 30 * wdp
 			shipMover.moveBy [0, -30 * wdp] if delta.y <= -30 * wdp
-		tool.onMouseUp = (e) =>
+		placeTool.onMouseUp = (e) =>
 			@rotate_s.mouseUp()
 			@next_s.mouseUp()
 			if prevPos?
 				clearTimeout @va
 				@va = async 200, validator.addInvalidRedBacks
-		tool.activate()
+		placeTool.activate()
 	
 	# The Game
 	do =>
@@ -643,7 +638,7 @@ setupCanvas = (data) ->
 				Game.yours.board.back.activate()
 				@redBack_s.place gridPosition
 				socket.emit "kaboom", coordinates, (result) =>
-					console.log result
+					return if !result?
 					switch result.result
 						when "hit"
 							Game.yours.board.front.activate()
@@ -695,7 +690,6 @@ setupCanvas = (data) ->
 		socket.on "theirTurn", yourTurn
 		
 		socket.on "shotAt", (data) =>
-			console.log data
 			gridPosition = gridHelper.gridPositionFromCoordinates new Point data.shotAt
 			Game.mine.board.back.activate()
 			@redBack_s.place gridPosition

@@ -54,7 +54,6 @@ class BattleShip
 					return if op.contains "safe" then result: "hit"
 					else
 						ship.sunk = true
-						console.log fluent.Dictify @ships
 						if fluent.Dictify(@ships).all((x) -> x.value.sunk) then result: "gameOver"
 						else
 							result: "sunk"
@@ -74,7 +73,7 @@ class BattleShip
 			@id = @constructor.generateNewGameId()
 			BattleShip.currentGames[@id] = @
 			BattleShip.currentGames.length++
-			console.log "New Game: #{@id}"
+			console.log "New Game: #{@id}, Total Games: #{BattleShip.currentGames.length}"
 		player1: null
 		player2: null
 		@generateNewGameId = ->
@@ -99,6 +98,7 @@ io.sockets.on "connection", (socket) ->
 	
 	socket.on "resetAll", (callback) ->
 		if socket.game?
+			console.log "End Game: #{socket.game.id}, Total Games: #{BattleShip.currentGames.length - 1}"
 			game = socket.game
 			socket.game = null
 			BattleShip.currentGames[game.id] = null
@@ -134,6 +134,8 @@ io.sockets.on "connection", (socket) ->
 			socket.game.player1.socket.emit "friendJoined"
 			
 	socket.on "setShips", (ships) ->
+		if !socket.game?
+			return socket.emit "friendDisconnected"
 		if socket.game.player1.socket is socket
 			socket.game.player1.ships = new BattleShip.Ships ships
 		else
@@ -143,6 +145,9 @@ io.sockets.on "connection", (socket) ->
 			socket.game.player2.socket.emit "theirTurn"
 	
 	socket.on "kaboom", (coordinates, callback) ->
+		if !socket.game?
+			callback()
+			return socket.emit "friendDisconnected"
 		targetPlayer = null
 		if socket.game.player1.socket is socket
 			targetPlayer = socket.game.player2
@@ -154,6 +159,7 @@ io.sockets.on "connection", (socket) ->
 		
 	socket.on "disconnect", ->
 		if socket.game?
+			console.log "End Game: #{socket.game.id}, Total Games: #{BattleShip.currentGames.length - 1}"
 			game = socket.game
 			socket.game = null
 			BattleShip.currentGames[game.id] = null

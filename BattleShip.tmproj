@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>src/page.coffee</string>
+	<string>lib/page.html</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -26,28 +26,28 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>10</integer>
+				<integer>21</integer>
 				<key>line</key>
-				<integer>45</integer>
+				<integer>79</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>74</integer>
 		</dict>
 		<key>lib/page.html</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>24</integer>
+				<integer>14</integer>
 				<key>line</key>
-				<integer>58</integer>
+				<integer>38</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>17</integer>
+			<integer>13</integer>
 		</dict>
 		<key>lib/page.js</key>
 		<dict>
@@ -56,54 +56,54 @@
 				<key>column</key>
 				<integer>3</integer>
 				<key>line</key>
-				<integer>1056</integer>
+				<integer>1106</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>1005</integer>
+			<integer>1056</integer>
 		</dict>
 		<key>src/page.coffee</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>24</integer>
+				<integer>65</integer>
 				<key>line</key>
-				<integer>660</integer>
+				<integer>82</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>638</integer>
+			<integer>62</integer>
 		</dict>
 		<key>src/page.styl</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>9</integer>
+				<integer>15</integer>
 				<key>line</key>
-				<integer>136</integer>
+				<integer>95</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>86</integer>
+			<integer>88</integer>
 		</dict>
 		<key>web.coffee</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>12</integer>
+				<integer>13</integer>
 				<key>line</key>
-				<integer>60</integer>
+				<integer>29</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>21</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
@@ -118,6 +118,6 @@
 	<key>showFileHierarchyDrawer</key>
 	<true/>
 	<key>windowFrame</key>
-	<string>{{269, 80}, {1154, 944}}</string>
+	<string>{{269, 85}, {1169, 944}}</string>
 </dict>
 </plist>

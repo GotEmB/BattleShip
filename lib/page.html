@@ -15,9 +15,11 @@
 	</head>
 	<body>
 		<canvas id="canvas" width="320" height="416"></canvas>
-		<div id="setupShipsOverlay">
-			<div id="setupShips_desc">
-				Swipe anywhere to move ships. Rotate ships. Tap next to proceed.
+		<div id="overlayContainer">
+			<div id="setupShipsOverlay">
+				<div id="setupShips_desc">
+					Swipe anywhere to move ships. Rotate ships. Tap next to proceed.
+				</div>
 			</div>
 		</div>
 		<div id="menuViewContainer">
@@ -41,7 +43,7 @@
 						Ask your friend for their Game Id to connect to their game.
 					</div>
 				</div>
-				<div id="gameOverMenu" class="menu moveLeft">
+				<div id="gameOverMenu" class="menu moveRight">
 					<div id="gameOver_msg" class="gameId_desc">
 						Something's happened.
 					</div>
