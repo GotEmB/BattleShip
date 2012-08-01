@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+
+<html>
+	<head>
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="user-scalable=no, width=320, height=416, initial-scale=1.0, maximum-scale=1.0">
+		<title>BattleShip</title>
+		<script src="jquery-1.7.2.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="underscore-min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="paper.js" type="text/javascript" charset="utf-8"></script>
+		<script src="page.js" type="text/javascript" charset="utf-8"></script>
+		<link rel="stylesheet" href="spinnericon.css" type="text/css" charset="utf-8">
+		<link rel="stylesheet" href="page.css" type="text/css" charset="utf-8">
+	</head>
+	<body>
+		<canvas id="canvas" width="320" height="416"></canvas>
+		<div id="overlayContainer">
+			<div id="setupShipsOverlay">
+				<div id="setupShips_desc">
+					Swipe anywhere to move ships. Rotate ships. Tap next to proceed.
+				</div>
+			</div>
+		</div>
+		<div id="menuViewContainer">
+			<div id="menuView">
+				<div id="mainMenu" class="menu">
+					<div id="newGame_btn" class="btn">New Game</div>
+					<div id="joinGame_btn" class="btn">Join Game</div>
+				</div>
+				<div id="newMenu" class="menu moveRight">
+					<div class="gameId_label">Game Id</div>
+					<div id="gameId" class="selectable">XXXXXX</div>
+					<div class="gameId_desc">
+						Your friend should be able to join this game using the above Game Id.
+					</div>
+				</div>
+				<div id="joinMenu" class="menu moveRight">
+					<div class="gameId_label">Game Id</div>
+					<div id="gameId_entry" contenteditable="true" class="selectable"></div>
+					<div id="enterGameId_btn" class="btn">Join</div>
+					<div class="gameId_desc">
+						Ask your friend for their Game Id to connect to their game.
+					</div>
+				</div>
+				<div id="gameOverMenu" class="menu moveRight">
+					<div id="gameOver_msg" class="gameId_desc">
+						Something's happened.
+					</div>
+					<div id="gameOverOkay_btn" class="btn">Okay</div>
+				</div>
+				<div id="friendPlacingMenu" class="menu moveRight">
+					<div class="gameId_desc">
+						Your friend is currently placing ships. The game will start automatically when they're done.
+					</div>
+				</div>
+				<div id="dialogMenu" class="menu moveRight">
+					<div id="dialog_desc" class="gameId_desc">
+						I'm supposed say something to you.
+					</div>
+					<div id="dialogOkay_btn" class="btn">Okay</div>
+				</div>
+			</div>
+		</div>
+		<div id="pleaseWait">
+			<div class="container grey">
+				<div class="spinner">
+					<div class="bar1"></div>
+					<div class="bar2"></div>
+					<div class="bar3"></div>
+					<div class="bar4"></div>
+					<div class="bar5"></div>
+					<div class="bar6"></div>
+					<div class="bar7"></div>
+					<div class="bar8"></div>
+					<div class="bar9"></div>
+					<div class="bar10"></div>
+					<div class="bar11"></div>
+					<div class="bar12"></div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
