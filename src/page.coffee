@@ -108,6 +108,9 @@ setupPage = ->
 	$("#gameId_Entry").focusout -> window.scrollTo 0, 1
 
 setupEvents = ->
+	bindMouseDown document, (e) ->
+		window.scrollTo 0, 1
+	
 	bindMouseDown "#newGame_btn", (e) ->
 		pleaseWait.show()
 		socket.emit "newGame", (data) ->
@@ -370,6 +373,21 @@ setupCanvas = (data) ->
 		redBack.fillColor.alpha = 0.5
 		@redBack_s = new Symbol redBack
 	
+	# Red Cursor
+	do =>
+		@redCursor = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		@redCursor.style = fillColor: "red"
+		@redCursor.fillColor.alpha = 0.8
+		@redCursor.opacity = 0
+		@redCursor.remove()
+		@redCursor.show = ->
+			view.onFrame = (e) =>
+				if e.time > 0.5
+					view.onFrame = null
+					@opacity = 0
+				else
+					@opacity = 1 - easeInOut e.time / 0.5
+	
 	# Cursor
 	do =>
 		@cursor = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
@@ -536,6 +554,7 @@ setupCanvas = (data) ->
 					mainLayer.activate()
 					Game.yours.board.placed = Game.yours.board.symbol.place [160 * wdp, 260 * wdp]
 					Game.yours.board.placed.scale 0.3, [160 * wdp, 410 * wdp]
+					Game.mine.board.back.addChild @redCursor
 				@next_s.mouseDown()
 			else
 				for str, ship of Game.mine.ships
@@ -669,12 +688,12 @@ setupCanvas = (data) ->
 				else
 					_(flags).each (x) -> x.remove()
 				view.onFrame = (e) =>
-					if e.time > 1
+					if e.time > 0.5
 						view.onFrame = null
 						cursorOn = false
 						@cursor.remove()
 					else
-						@cursor.opacity = 1 - easeInOut e.time
+						@cursor.opacity = 1 - easeInOut e.time / 0.5
 		
 		myTurn = ->
 			hideFriendPlacingMenu()
@@ -693,6 +712,8 @@ setupCanvas = (data) ->
 			gridPosition = gridHelper.gridPositionFromCoordinates new Point data.shotAt
 			Game.mine.board.back.activate()
 			@redBack_s.place gridPosition
+			@redCursor.position = gridPosition
+			@redCursor.show()
 			switch data.result.result
 				when "hit"
 					Game.mine.board.front.activate()

@@ -1,3 +1,5 @@
+.DS_Store
+
 lib-cov
 *.seed
 *.log
@@ -13,3 +15,6 @@ results
 
 node_modules
 npm-debug.log
+
+lib/page.js
+lib/page.css
