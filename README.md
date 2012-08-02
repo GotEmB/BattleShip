@@ -1,4 +1,6 @@
 BattleShip
 ==========
 
-Trying to implement a simple BattleShip game using HTML5 Canvas and socket.io
+A simple BattleShip game implemented using HTML5 Canvas and socket.io.
+
+Running at http://battleship-gb.heroku.com.
