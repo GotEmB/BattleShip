@@ -3,6 +3,11 @@ socket_io = require "socket.io"
 fluent = require "./fluent"
 md5 = require "MD5"
 http = require "http"
+{spawn} = require "child_process"
+
+cp = spawn "cake", ["build"]
+await cp.on "exit", defer code
+return console.log "Build failed! Run 'cake build' to display build errors." if code isnt 0
 
 class BattleShip
 	@currentGames:

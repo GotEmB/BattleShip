@@ -22,12 +22,10 @@ build = (callback) ->
 			callback? result
 
 task "build", "build 'src/' to 'lib/'", ->
-	build()
+	build (result) -> process.exit if result then 0 else 1
 
 task "run", "run 'iced web.coffee'", ->
-	build (result) ->
-		spawnProcess "iced", ["web.coffee"]
+	spawnProcess "iced", ["web.coffee"]
 
 task "debug", "run 'iced --nodejs --debug-brk web.coffee", ->
-	build (result) ->
-		spawnProcess "iced", ["--nodejs", "--debug-brk", "web.coffee"]
+	spawnProcess "iced", ["--nodejs", "--debug-brk", "web.coffee"]
