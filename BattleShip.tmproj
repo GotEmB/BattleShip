@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>src/page.styl</string>
+	<string>web.coffee</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -63,33 +63,19 @@
 			<key>firstVisibleLine</key>
 			<integer>614</integer>
 		</dict>
-		<key>src/page.styl</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>29</integer>
-				<key>line</key>
-				<integer>16</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-		</dict>
 		<key>web.coffee</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>33</integer>
+				<integer>16</integer>
 				<key>line</key>
-				<integer>132</integer>
+				<integer>8</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>106</integer>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
@@ -98,7 +84,6 @@
 		<string>src/page.coffee</string>
 		<string>Cakefile</string>
 		<string>lib/page.html</string>
-		<string>src/page.styl</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>
 	<true/>
