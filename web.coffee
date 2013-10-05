@@ -5,9 +5,9 @@ md5 = require "MD5"
 http = require "http"
 {spawn} = require "child_process"
 
-cp = spawn "cake", ["build"]
+cp = spawn "icake", ["build"]
 await cp.on "exit", defer code
-return console.log "Build failed! Run 'cake build' to display build errors." if code isnt 0
+return console.log "Build failed! Run 'icake build' to display build errors." if code isnt 0
 
 class BattleShip
 	@currentGames:
