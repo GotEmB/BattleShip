@@ -186,7 +186,7 @@ setupCanvas = (data) ->
 	return $("#canvas").css "display", "none" if data.reset? and data.reset
 	
 	$("#canvas").css "display", "block"
-	inactiveTool = new Tool()
+	inactiveTool = new paper.Tool()
 	inactiveTool.activate()
 	
 	class Game
@@ -195,7 +195,7 @@ setupCanvas = (data) ->
 			placed: null
 			back: null
 			front: null
-			position: => ((mtx) => new Point [mtx._tx, mtx._ty])(@placed._matrix)
+			position: => ((mtx) => new paper.Point [mtx._tx, mtx._ty])(@placed._matrix)
 		class @Ships
 			aircraftCarrier: null
 			battleShip: null
@@ -215,64 +215,64 @@ setupCanvas = (data) ->
 			strokeColor: "white"
 			strokeWidth: 2 * wdp
 			strokeCap: "round"
-		vline = new Path()
+		vline = new paper.Path()
 		vline.style = lstyle
 		vline.add [0, 0]
 		vline.add [0, 300 * wdp]
-		vline_s = new Symbol vline
+		vline_s = new paper.Symbol vline
 		vlines = for i in [0..10]
 			vline_s.place [i * 30 * wdp, 150 * wdp]
-		hline = new Path()
+		hline = new paper.Path()
 		hline.style = lstyle
 		hline.add [0, 0]
 		hline.add [300 * wdp, 0]
-		hline_s = new Symbol hline
+		hline_s = new paper.Symbol hline
 		hlines = for i in [0..10]
 			hline_s.place [150 * wdp, i * 30 * wdp]
-		gridl = new Group vlines
+		gridl = new paper.Group vlines
 		gridl.addChildren hlines
-		@gridl_s = new Symbol gridl
+		@gridl_s = new paper.Symbol gridl
 	
 	# Mine — Group
 	do =>
-		Game.mine.board.back = new Layer()
+		Game.mine.board.back = new paper.Layer()
 		mainLayer.activate()
 		mineGrid = gridl_s.place()
-		Game.mine.board.front = new Layer()
+		Game.mine.board.front = new paper.Layer()
 		mainLayer.activate()
-		mine = new Group [Game.mine.board.back, mineGrid, Game.mine.board.front]
-		Game.mine.board.symbol = new Symbol mine
+		mine = new paper.Group [Game.mine.board.back, mineGrid, Game.mine.board.front]
+		Game.mine.board.symbol = new paper.Symbol mine
 	
 	# Yours — Group
 	do =>
-		Game.yours.board.back = new Layer()
+		Game.yours.board.back = new paper.Layer()
 		mainLayer.activate()
 		yoursGrid = gridl_s.place()
-		Game.yours.board.front = new Layer()
+		Game.yours.board.front = new paper.Layer()
 		mainLayer.activate()
-		yours = new Group [Game.yours.board.back, yoursGrid, Game.yours.board.front]
-		Game.yours.board.symbol = new Symbol yours
+		yours = new paper.Group [Game.yours.board.back, yoursGrid, Game.yours.board.front]
+		Game.yours.board.symbol = new paper.Symbol yours
 	
 	# Rotate Button
 	do =>
-		box = new Path.Rectangle [-14 * wdp, -14 * wdp], [28 * wdp, 28 * wdp]
+		box = new paper.Path.Rectangle [-14 * wdp, -14 * wdp], [28 * wdp, 28 * wdp]
 		box.style =
 			fillColor: "white"
 			strokeWidth: 2 * wdp
 			strokeColor: "white"
 			strokeCap: "square"
-		arc = new Path.Circle [0, 0], 6 * wdp
+		arc = new paper.Path.Circle [0, 0], 6 * wdp
 		arc.style =
 			strokeColor: "black"
 			strokeWidth: 3 * wdp
 			strokeCap: "round"
 		arc.closed = false
 		arc.rotate -90
-		arrow = new Path [[1 * wdp, 0], [11 * wdp, 0], [6 * wdp, 5 * wdp]]
+		arrow = new paper.Path [[1 * wdp, 0], [11 * wdp, 0], [6 * wdp, 5 * wdp]]
 		arrow.style = fillColor: "black"
 		arrow.closePath()
-		rotate = new Group [box, arc, arrow]
-		@rotate_s = new Symbol rotate
+		rotate = new paper.Group [box, arc, arrow]
+		@rotate_s = new paper.Symbol rotate
 		@rotate_s.mouseDown = ->
 			box.fillColor = "black"
 			arc.strokeColor = "white"
@@ -284,17 +284,17 @@ setupCanvas = (data) ->
 	
 	# Next Button
 	do =>
-		box = new Path.Rectangle [-14 * wdp, -14 * wdp], [28 * wdp, 28 * wdp]
+		box = new paper.Path.Rectangle [-14 * wdp, -14 * wdp], [28 * wdp, 28 * wdp]
 		box.style =
 			fillColor: "white"
 			strokeWidth: 2 * wdp
 			strokeColor: "white"
 			strokeCap: "square"
-		arrow = new Path [[-4 * wdp, -8 * wdp], [6 * wdp, 0], [-4 * wdp, 8 * wdp]]
+		arrow = new paper.Path [[-4 * wdp, -8 * wdp], [6 * wdp, 0], [-4 * wdp, 8 * wdp]]
 		arrow.style = fillColor: "black"
 		arrow.closePath()
-		next = new Group [box, arrow]
-		@next_s = new Symbol next
+		next = new paper.Group [box, arrow]
+		@next_s = new paper.Symbol next
 		@next_s.mouseDown = ->
 			box.fillColor = "black"
 			arrow.fillColor = "white"
@@ -304,26 +304,26 @@ setupCanvas = (data) ->
 	
 	# Generic Ship
 	makeShip = (n) ->
-		line = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
+		line = new paper.Path [[0, 0], [30 * (n - 1) * wdp, 0]]
 		line.style =
 			strokeColor: "white"
 			strokeWidth: 10 * wdp
 			strokeCap: "round"
-		select = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
+		select = new paper.Path [[0, 0], [30 * (n - 1) * wdp, 0]]
 		select.style =
 			strokeColor: "cyan"
 			strokeWidth: 10 * wdp
 			strokeCap: "round"
 		select.strokeColor.alpha = 0.25
 		select.visible = false
-		red = new Path [[0, 0], [30 * (n - 1) * wdp, 0]]
+		red = new paper.Path [[0, 0], [30 * (n - 1) * wdp, 0]]
 		red.style =
 			strokeColor: "red"
 			strokeWidth: 10 * wdp
 			strokeCap: "round"
 		red.strokeColor.alpha = 0.5
 		red.visible = false
-		ship = new Group [line, select, red]
+		ship = new paper.Group [line, select, red]
 		ship.select = ->
 			select.visible = true
 		ship.deselect = ->
@@ -333,19 +333,19 @@ setupCanvas = (data) ->
 		ship.unsunk = ->
 			red.visible = false
 		ship.boundary =
-			horizontal: new Rectangle
+			horizontal: new paper.Rectangle
 				x: -(150 - 15 * n) * wdp
 				y: -135 * wdp
 				width: 2 * (150 - 15 * n) * wdp
 				height: 2 * 135 * wdp
-			vertical: new Rectangle
+			vertical: new paper.Rectangle
 				x: -135 * wdp
 				y: -(150 - 15 * n) * wdp
 				width: 2 * 135 * wdp
 				height: 2 * (150 - 15 * n) * wdp
 		ship.orientation = "horizontal"
 		ship.size = n
-		ship.gridBounds = -> new Rectangle
+		ship.gridBounds = -> new paper.Rectangle
 			x: roundTo1 ship.bounds.x - 15 * wdp
 			y: roundTo1 ship.bounds.y - 15 * wdp
 			width: roundTo1 ship.bounds.width + 30 * wdp
@@ -368,14 +368,14 @@ setupCanvas = (data) ->
 	
 	# Red Backs
 	do =>
-		redBack = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		redBack = new paper.Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
 		redBack.style = fillColor: "red"
 		redBack.fillColor.alpha = 0.5
-		@redBack_s = new Symbol redBack
+		@redBack_s = new paper.Symbol redBack
 	
 	# Red Cursor
 	do =>
-		@redCursor = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		@redCursor = new paper.Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
 		@redCursor.style = fillColor: "red"
 		@redCursor.fillColor.alpha = 0.8
 		@redCursor.opacity = 0
@@ -390,32 +390,32 @@ setupCanvas = (data) ->
 	
 	# Cursor
 	do =>
-		@cursor = new Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
+		@cursor = new paper.Path.Rectangle [0, 0], [30 * wdp, 30 * wdp]
 		@cursor.style = fillColor: "yellow"
 		@cursor.fillColor.alpha = 0.5
 		@cursor.remove()
 	
 	# Shot
 	do =>
-		shot = new Path.Circle [0, 0], 5 * wdp
+		shot = new paper.Path.Circle [0, 0], 5 * wdp
 		shot.style = fillColor: "white"
-		@shot_s = new Symbol shot
+		@shot_s = new paper.Symbol shot
 	
 	# Flag
 	do =>
-		flag = new Path.Circle [0, 0], 2 * wdp
+		flag = new paper.Path.Circle [0, 0], 2 * wdp
 		flag.style = fillColor: "white"
-		@flag_s = new Symbol flag
+		@flag_s = new paper.Symbol flag
 	
 	# Red Shot
 	do =>
-		shot = new Path.Circle [0, 0], 3 * wdp
+		shot = new paper.Path.Circle [0, 0], 3 * wdp
 		shot.style = fillColor: "white"
-		red = new Path.Circle [0, 0], 3 * wdp
+		red = new paper.Path.Circle [0, 0], 3 * wdp
 		red.style = fillColor: "red"
 		red.fillColor.alpha = 0.5
-		redShot = new Group [shot, red]
-		@redShot_s = new Symbol redShot
+		redShot = new paper.Group [shot, red]
+		@redShot_s = new paper.Symbol redShot
 	
 	# Setup Ships
 	do =>
@@ -445,8 +445,8 @@ setupCanvas = (data) ->
 			@rotate: =>
 				return if view.onFrame?
 				validator.removeInvalidRedBacks()
-				startPos = new Point @currentPos
-				endPos =  new Point @currentPos
+				startPos = new paper.Point @currentPos
+				endPos =  new paper.Point @currentPos
 				if selectedShip.size % 2 is 0
 					endPos = endPos.add if selectedShip.orientation is "horizontal" then [15 * wdp, 15 * wdp] else [-15 * wdp, -15 * wdp]
 				newBoundary = if selectedShip.orientation is "horizontal" then selectedShip.boundary.vertical else selectedShip.boundary.horizontal
@@ -456,11 +456,11 @@ setupCanvas = (data) ->
 				endPos.y = newBoundary.bottom if endPos.y > newBoundary.bottom
 				@currentPos = endPos
 				delta = endPos.subtract startPos
-				transformMatrix = new Matrix()
+				transformMatrix = new paper.Matrix()
 				selectedShip.orientation = if selectedShip.orientation is "horizontal" then "vertical" else "horizontal"
 				view.onFrame = (e) ->
 					selectedShip.rotate -transformMatrix.rotation
-					transformMatrix = new Matrix()
+					transformMatrix = new paper.Matrix()
 					if e.time > 0.2
 						transformMatrix.rotate 90
 						selectedShip.rotate transformMatrix.rotation
@@ -496,7 +496,7 @@ setupCanvas = (data) ->
 				overlappingShips = _.union _.map(allShips, @shipsOverlapping)...
 				touchingShips = _.union _.map(allShips, @shipsTouching)...
 				invalidShips = _.union overlappingShips, touchingShips
-				allCoordinates = _.flatten(for i in [0...10] then for j in [0...10] then new Point [i, j])
+				allCoordinates = _.flatten(for i in [0...10] then for j in [0...10] then new paper.Point [i, j])
 				_.filter allCoordinates, (coordinates) => @shipsAt(coordinates, invalidShips).length > 0
 			@removeInvalidRedBacks: ->
 				redBack.remove() for redBack in _.clone Game.mine.board.back.children
@@ -510,10 +510,10 @@ setupCanvas = (data) ->
 						view.onFrame = null
 					else
 						redBack.opacity = easeInOut e.time / 0.2 for redBack in Game.mine.board.back.children
-		roundCoordinates = (point) -> new Point
+		roundCoordinates = (point) -> new paper.Point
 			x: Math.round point.x
 			y: Math.round point.y
-		placeTool = new Tool()
+		placeTool = new paper.Tool()
 		placeTool.maxDistance = 30 * wdp
 		shipMover.currentPos = selectedShip.position
 		placeTool.onMouseDown = (e) =>
@@ -630,13 +630,13 @@ setupCanvas = (data) ->
 				coordinates.multiply(30).subtract([135, 135]).multiply wdp
 			@gridBoundsFromCoordinates: (coordinates) ->
 				point = @gridPositionFromCoordinates coordinates
-				new Rectangle
+				new paper.Rectangle
 					x: point.x - 15 * wdp
 					y: point.y - 15 * wdp
 					width: 30 * wdp
 					height: 30 * wdp
 	
-		activeTool = new Tool()
+		activeTool = new paper.Tool()
 		cursorOn = false
 		activeTool.onMouseDown = (e) =>
 			coordinates = gridHelper.coordinatesFromMouse "yours", e.point
@@ -666,7 +666,7 @@ setupCanvas = (data) ->
 							ship = Game.yours.ships[result.ship.type]
 							ship.rotate 90 if result.ship.orientation is "vertical"
 							ship.orientation = result.ship.orientation
-							shipCoords = new Point(result.ship.coordinates)
+							shipCoords = new paper.Point(result.ship.coordinates)
 							if result.ship.orientation is "horizontal"
 								shipCoords.x += (ship.size - 1) / 2
 							else
@@ -709,7 +709,7 @@ setupCanvas = (data) ->
 		socket.on "theirTurn", yourTurn
 		
 		socket.on "shotAt", (data) =>
-			gridPosition = gridHelper.gridPositionFromCoordinates new Point data.shotAt
+			gridPosition = gridHelper.gridPositionFromCoordinates new paper.Point data.shotAt
 			Game.mine.board.back.activate()
 			@redBack_s.place gridPosition
 			@redCursor.position = gridPosition
