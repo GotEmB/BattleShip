@@ -7,7 +7,7 @@ http = require "http"
 
 cp = spawn "icake", ["build"]
 await cp.on "exit", defer code
-# return console.log "Build failed! Run 'icake build' to display build errors." if code isnt 0
+return console.log "Build failed! Run 'icake build' to display build errors." if code isnt 0
 
 class BattleShip
 	@currentGames:
