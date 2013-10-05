@@ -635,7 +635,7 @@ setupCanvas = (data) ->
 					y: point.y - 15 * wdp
 					width: 30 * wdp
 					height: 30 * wdp
-	
+
 		activeTool = new paper.Tool()
 		cursorOn = false
 		activeTool.onMouseDown = (e) =>
