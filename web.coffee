@@ -98,7 +98,10 @@ expressServer.configure ->
 server = http.createServer expressServer
 
 io = socket_io.listen server
-io.set "log level", 0
+io.configure ->
+	io.set "transports", ["xhr-polling"]
+	io.set "polling duration", 10
+	io.set "log level", 0
 io.sockets.on "connection", (socket) ->
 	
 	socket.on "resetAll", (callback) ->
